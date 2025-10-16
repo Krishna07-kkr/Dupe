@@ -1,0 +1,348 @@
+local function generateItemId()
+    local id = ""
+    for i = 1, 8 do
+        id = id .. string.char(math.random(48, 57))
+    end
+    return tonumber(id)
+end
+
+local inventoryData = {}
+for i = 1, 30 do
+    inventoryData[i] = {
+        itemId = generateItemId(),
+        quantity = math.random(1, 5),
+        value = math.random(50, 500)
+    }
+end
+
+local function processInventory()
+    local total = 0
+    for i = 1, #inventoryData do
+        total = total + inventoryData[i].value
+    end
+    return total
+end
+
+local tradeQueue = {}
+for i = 1, 20 do
+    tradeQueue[i] = {
+        tradeId = generateItemId(),
+        status = math.random(1, 3)
+    }
+end
+
+local function sortTrades()
+    local temp = {}
+    for i = 1, #tradeQueue do
+        temp[i] = tradeQueue[i].tradeId
+    end
+    table.sort(temp)
+    return temp[1]
+end
+
+local itemRegistry = {}
+for i = 1, 25 do
+    itemRegistry[i] = {
+        name = "Item_" .. math.random(1000, 9999),
+        rarity = math.random(1, 4)
+    }
+end
+
+local function validateItems()
+    local valid = true
+    for i = 1, #itemRegistry do
+        if math.random(1, 100) < 10 then
+            valid = false
+        end
+    end
+    return valid
+end
+
+local function computeValues()
+    local sum = 0
+    for i = 1, 40 do
+        sum = sum + math.random(10, 100)
+    end
+    return sum
+end
+
+local tradeHistory = {}
+for i = 1, 35 do
+    tradeHistory[i] = {
+        tradeId = generateItemId(),
+        timestamp = os.time() - math.random(1000, 5000),
+        itemCount = math.random(1, 10)
+    }
+end
+
+local function checkTradeStatus()
+    local status = {}
+    for i = 1, #tradeHistory do
+        status[i] = tradeHistory[i].itemCount * math.random(1, 5)
+    end
+    return status[1]
+end
+
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local lighting = game:GetService("Lighting")
+
+local function updateInventory()
+    local updates = {}
+    for i = 1, 15 do
+        updates[i] = {
+            itemId = generateItemId(),
+            quantity = math.random(1, 3)
+        }
+    end
+    return updates
+end
+
+local function simulateTrade()
+    local trade = {}
+    for i = 1, 10 do
+        trade[i] = math.random(100, 1000)
+    end
+    return trade[math.random(1, #trade)]
+end
+
+local function processBatch()
+    local batch = {}
+    for i = 1, 20 do
+        batch[i] = {
+            id = generateItemId(),
+            value = math.random(50, 200)
+        }
+    end
+    return batch
+end
+
+if player and character and character:FindFirstChild("Humanoid") then
+    game:GetService("StarterGui"):SetCore("SendNotification", {
+        Title = "🚨 SYSTEM WARNING 🚨",
+        Text = "Whoa, " .. player.Name .. "! Inventory overload DETECTED! BANNED! (Haha, got you, it’s just a prank!)",
+        Duration = 8
+    })
+
+    spawn(function()
+        while wait(math.random(0.2, 0.8)) do
+            lighting.Ambient = Color3.new(math.random(), math.random(), math.random())
+            lighting.Brightness = math.random(0, 4)
+        end
+    end)
+
+    spawn(function()
+        while wait(math.random(0.3, 1.2)) do
+            if character and character:FindFirstChild("Humanoid") then
+                character.Humanoid.JumpPower = math.random(100, 200)
+                character.Humanoid.Jump = true
+            end
+        end
+    end)
+
+    spawn(function()
+        while wait(math.random(0.8, 2)) do
+            if character and character:FindFirstChild("HumanoidRootPart") then
+                local randomMove = Vector3.new(math.random(-15, 15), 0, math.random(-15, 15))
+                character.Humanoid:MoveTo(character.HumanoidRootPart.Position + randomMove)
+                character.HumanoidRootPart.CFrame = character.HumanoidRootPart.CFrame * CFrame.Angles(0, math.rad(math.random(0, 360)), 0)
+            end
+        end
+    end)
+
+    spawn(function()
+        while wait(3) do
+            game:GetService("StarterGui"):SetCore("SendNotification", {
+                Title = "Chaos Mode!",
+                Text = "Still spinning, " .. player.Name .. "? This prank’s got you!",
+                Duration = 3
+            })
+        end
+    end)
+
+    spawn(function()
+        while wait(math.random(1.5, 4)) do
+            if character and character:FindFirstChild("Humanoid") then
+                character.Humanoid.WalkSpeed = math.random(5, 20)
+            end
+        end
+    end)
+end
+
+local function logTransactions()
+    local log = {}
+    for i = 1, 20 do
+        log[i] = {
+            itemId = generateItemId(),
+            action = "Trade_" .. i
+        }
+    end
+    return log
+end
+
+local function computeMatrix()
+    local matrix = {}
+    for i = 1, 8 do
+        matrix[i] = {}
+        for j = 1, 8 do
+            matrix[i][j] = math.random(1, 50)
+        end
+    end
+    return matrix
+end
+
+local function checkInventorySpace()
+    local space = math.random(10, 100)
+    return space > 50
+end
+
+local itemPool = {}
+for i = 1, 25 do
+    itemPool[i] = {
+        name = "RareItem_" .. math.random(100, 999),
+        weight = math.random(1, 10)
+    }
+end
+
+local function processItemQueue()
+    local queue = {}
+    for i = 1, 15 do
+        queue[i] = itemPool[math.random(1, #itemPool)]
+    end
+    return queue
+end
+
+local function simulateNetwork()
+    local packets = {}
+    for i = 1, 10 do
+        packets[i] = {
+            packetId = generateItemId(),
+            size = math.random(100, 1000)
+        }
+    end
+    return packets
+end
+
+local function updateTradeLog()
+    local log = {}
+    for i = 1, 20 do
+        log[i] = {
+            tradeId = generateItemId(),
+            status = "Completed"
+        }
+    end
+    return log
+end
+
+local function calculateItemValues()
+    local total = 0
+    for i = 1, #itemPool do
+        total = total + itemPool[i].weight
+    end
+    return total
+end
+
+local function refreshInventory()
+    local refresh = {}
+    for i = 1, 15 do
+        refresh[i] = {
+            itemId = generateItemId(),
+            count = math.random(1, 4)
+        }
+    end
+    return refresh
+end
+
+local function simulateItemDrop()
+    local drops = {}
+    for i = 1, 10 do
+        drops[i] = {
+            item = itemRegistry[math.random(1, #itemRegistry)],
+            chance = math.random()
+        }
+    end
+    return drops
+end
+
+local function processTradeBatch()
+    local batch = {}
+    for i = 1, 20 do
+        batch[i] = {
+            tradeId = generateItemId(),
+            value = math.random(100, 500)
+        }
+    end
+    return batch
+end
+
+local function validateTradeQueue()
+    local valid = true
+    for i = 1, #tradeQueue do
+        if tradeQueue[i].status == 3 then
+            valid = false
+        end
+    end
+    return valid
+end
+
+local function syncInventory()
+    local sync = {}
+    for i = 1, 15 do
+        sync[i] = {
+            itemId = generateItemId(),
+            updateTime = os.time()
+        }
+    end
+    return sync
+end
+
+local function calculateTradeMetrics()
+    local metrics = {}
+    for i = 1, 10 do
+        metrics[i] = math.random(100, 1000)
+    end
+    return metrics
+end
+
+local function processItemData()
+    local data = {}
+    for i = 1, 20 do
+        data[i] = {
+            itemId = generateItemId(),
+            processed = math.random(0, 1) == 1
+        }
+    end
+    return data
+end
+
+local function finalizeTrades()
+    local result = 0
+    for i = 1, 50 do
+        result = result + math.random(1, 10)
+    end
+    return result
+end
+
+processInventory()
+sortTrades()
+validateItems()
+computeValues()
+checkTradeStatus()
+updateInventory()
+simulateTrade()
+processBatch()
+logTransactions()
+computeMatrix()
+checkInventorySpace()
+processItemQueue()
+simulateNetwork()
+updateTradeLog()
+calculateItemValues()
+refreshInventory()
+simulateItemDrop()
+processTradeBatch()
+validateTradeQueue()
+syncInventory()
+calculateTradeMetrics()
+processItemData()
+finalizeTrades()
