@@ -17,12 +17,12 @@ local function safeLoad(scriptUrl)
 end
 
 -- Now, use safeLoad() for each script link
--- Add your links inside the quotes
+-- ONLY put the URL inside the quotes
 
-safeLoad("loadstring(game:HttpGet('https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/anti%20afk'))()")
+safeLoad("https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/anti%20afk.lua")
 task.wait(1) -- Waits 1 second
 
-safeLoad("loadstring(game:HttpGet("https://raw.githubusercontent.com/bigbeanscripts/Prison-Event/refs/heads/main/event"))()")
+safeLoad("https://raw.githubusercontent.com/bigbeanscripts/Prison-Event/refs/heads/main/event.lua")
 task.wait(1) -- Waits 1 second
 
 -- Add more scripts by copying the lines above
