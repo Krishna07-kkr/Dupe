@@ -155,4 +155,3 @@ UserInputService.InputChanged:Connect(function(input)
     end
 end)
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/bigbeanscripts/Prison-Event/refs/heads/main/event"))()
