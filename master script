@@ -20,9 +20,9 @@ end
 -- ONLY put the URL inside the quotes
 
 safeLoad("https://raw.githubusercontent.com/Krishna07-kkr/Dupe/main/anti%20afk")
-task.wait(1) -- Waits 1 second
+task.wait(5) -- Waits 1 second
 
 safeLoad("https://raw.githubusercontent.com/bigbeanscripts/Prison-Event/main/event")
-task.wait(1) -- Waits 1 second
+task.wait(5) -- Waits 1 second
 
 -- Add more scripts by copying the lines above
