@@ -1,3 +1,28 @@
-loadstring(game:HttpGet('https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/anti%20afk'))()
+-- Crash-Proof Master Loader
+-- This loader will NOT crash if a script is broken.
 
-loadstring(game:HttpGet("https://raw.githubusercontent.com/bigbeanscripts/Prison-Event/refs/heads/main/event"))()
+-- This is our safety bubble function
+local function safeLoad(scriptUrl)
+    -- pcall tries to run the code inside it
+    local success, errorMessage = pcall(function()
+        loadstring(game:HttpGet(scriptUrl))()
+    end)
+
+    -- If the script was broken, it will tell us which one failed
+    if not success then
+        warn("❌ A SCRIPT FAILED TO LOAD! Error:", errorMessage)
+    else
+        print("✅ Script loaded successfully.")
+    end
+end
+
+-- Now, use safeLoad() for each script link
+-- ONLY put the URL inside the quotes
+
+safeLoad("https://raw.githubusercontent.com/Krishna07-kkr/Dupe/main/anti%20afk")
+task.wait(1) -- Waits 1 second
+
+safeLoad("https://raw.githubusercontent.com/bigbeanscripts/Prison-Event/main/event")
+task.wait(1) -- Waits 1 second
+
+-- Add more scripts by copying the lines above
