@@ -1,0 +1,3 @@
+loadstring(game:HttpGet('https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/anti%20afk'))()
+
+loadstring(game:HttpGet("https://raw.githubusercontent.com/bigbeanscripts/Prison-Event/refs/heads/main/event"))()
