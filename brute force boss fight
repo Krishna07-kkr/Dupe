@@ -1,0 +1,313 @@
+-- Libraries
+loadstring(game:HttpGet("https://raw.githubusercontent.com/SenhorLDS/ProjectLDSHUB/refs/heads/main/Anti%20AFK"))()
+local Library = loadstring(game:HttpGet("https://github.com/ActualMasterOogway/Fluent-Renewed/releases/latest/download/Fluent.luau"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/bigbeanscripts/Pet-Warriors/refs/heads/main/test"))()
+local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/master/Addons/InterfaceManager.luau"))()
+
+-- Window Setup
+local Window = Library:Window{
+    Title = "Christmas Event",
+    SubTitle = "By Duckie",
+    TabWidth = 160,
+    Size =  UDim2.fromOffset(580, 460),
+    Resize = false, 
+    Theme = "Darker",
+    MinimizeKey = Enum.KeyCode.LeftShift
+}
+
+-- Define Tabs
+local Tabs = {
+    Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
+    AutoFight = Window:AddTab({ Title = "Main", Icon = "crown" }),
+    Eggs = Window:AddTab({ Title = "Eggs", Icon = "egg" }),
+    Merchant = Window:AddTab({ Title = "Merchant", Icon = "phosphor-shopping-cart-fill" }),
+    Tower = Window:AddTab({ Title = "Tower", Icon = "castle" }),
+    Christmas = Window:AddTab({ Title = "Christmas Stuff", Icon = "snowflake" }),
+    Gift = Window:AddTab({ Title = "Gift Machine", Icon = "gift" }),
+}
+
+-- ===========================
+-- BOSSFIGHT TAB LOGIC
+-- ===========================
+
+local FightSection = Tabs.AutoFight:AddSection("Auto Fight")
+
+local npcLocations = {}
+
+-- 1. Add Special Event Zones Manually
+if workspace.GameObjects.ArmWrestling:FindFirstChild("ToyFactory") then
+    npcLocations["ToyFactory"] = workspace.GameObjects.ArmWrestling.ToyFactory.NPC
+end
+if workspace.GameObjects.ArmWrestling:FindFirstChild("NorthPole") then
+    npcLocations["NorthPole"] = workspace.GameObjects.ArmWrestling.NorthPole.NPC
+end
+
+-- 2. Auto-Loop for Worlds 1 to 22
+for i = 1, 22 do
+    local worldNum = tostring(i)
+    local worldFolder = workspace.GameObjects.ArmWrestling:FindFirstChild(worldNum)
+    
+    if worldFolder then
+        local npcFolder = worldFolder:FindFirstChild("npc") or worldFolder:FindFirstChild("NPC")
+        if npcFolder then
+            npcLocations[worldNum] = npcFolder
+        end
+    end
+end
+
+local modelNames = {}
+
+for _, path in pairs(npcLocations) do
+    if path then
+        for _, npc in pairs(path:GetChildren()) do
+            if npc:IsA("Model") then
+                table.insert(modelNames, npc.Name)
+            end
+        end
+    end
+end
+
+table.sort(modelNames)
+
+local modelDropdown = Tabs.AutoFight:AddDropdown("ModelDropdown", {
+    Title = "Select Boss",
+    Values = modelNames,
+    Multi = false,
+    Searchable = true,
+    Default = modelNames[1] or "",
+})
+
+local AutoClickToggle = Tabs.AutoFight:AddToggle("AutoClick", {
+    Title = "Auto Click/Crit",
+    Description = "500 Threads - High Speed.",
+    Default = false
+})
+
+local AutoFightToggle = Tabs.AutoFight:AddToggle("AutoFight", {
+    Title = "Auto Fight (Auto Win + 500 Threads)",
+    Description = "Automatically starts fights, applies instant win, and spams requests.",
+    Default = false
+})
+
+-- Block Analytics
+pcall(function()
+    local gameAnalyticsError = game:GetService("ReplicatedStorage"):FindFirstChild("GameAnalyticsError")
+    if gameAnalyticsError then
+        gameAnalyticsError.FireServer = function(self, ...) return end
+    end
+end)
+
+-- Services
+local KnitServices = game:GetService("ReplicatedStorage").Packages.Knit.Services
+local ArmwrestleServiceRF = KnitServices:WaitForChild("ArmWrestleService"):WaitForChild("RF")
+local ArmwrestleServiceRE = KnitServices:WaitForChild("ArmWrestleService"):WaitForChild("RE")
+local ZoneService = KnitServices:WaitForChild("ZoneService"):WaitForChild("RE")
+
+local autoClickThreads = {}
+local autoFightThreads = {}
+local cleanupConnections = {}
+local lastZoneCheck = 0
+local hacksApplied = false
+
+-- AUTOMATIC INSTANT WIN FUNCTION
+local function applyInstantWinHacks()
+    if hacksApplied then return end
+    hacksApplied = true
+    
+    pcall(function()
+        local armWrestle = require(game:GetService("ReplicatedStorage").Controllers.Fighting.ArmWrestleController)
+        
+        -- Hook Power
+        local originalIncrementPower = armWrestle.IncrementPower
+        armWrestle.IncrementPower = function(self, amount)
+            originalIncrementPower(self, math.huge) 
+        end
+        
+        -- Hook Health
+        spawn(function()
+            while true do
+                if armWrestle.Fighting then
+                    if armWrestle.Health and armWrestle.MaxHealth then
+                        armWrestle.Health = armWrestle.MaxHealth
+                    end
+                end
+                task.wait(0.01)
+            end
+        end)
+        
+        -- Hook UpdateFight (Prevent NPC resistance)
+        local originalUpdateFight = armWrestle.UpdateFight
+        armWrestle.UpdateFight = function(self)
+            -- Do nothing
+        end
+    end)
+end
+
+local function teleportToNpcZone(npcName)
+    local player = game.Players.LocalPlayer
+    local playerCurrentZone = player:GetAttribute("CurrentZone")
+    
+    local npcZone = nil
+    for zoneName, path in pairs(npcLocations) do
+        if path:FindFirstChild(npcName) then
+            npcZone = zoneName
+            break
+        end
+    end
+    
+    if npcZone and playerCurrentZone ~= npcZone then
+        local teleportDest = workspace.Zones:FindFirstChild(npcZone)
+        
+        if teleportDest then
+            local spawnLoc = teleportDest:FindFirstChild("Interactables")
+            if spawnLoc then
+                spawnLoc = spawnLoc:FindFirstChild("Teleports")
+                if spawnLoc then
+                    spawnLoc = spawnLoc:FindFirstChild("Locations")
+                    if spawnLoc then
+                        spawnLoc = spawnLoc:FindFirstChild("Spawn")
+                    end
+                end
+            end
+
+            if spawnLoc then
+                local args = { [1] = spawnLoc }
+                ZoneService.teleport:FireServer(unpack(args))
+                task.wait(0.1) 
+                return true
+            end
+        end
+    end
+    return npcZone ~= nil
+end
+
+local function cleanupRequests()
+    collectgarbage("count")
+    pcall(function() local temp = ArmwrestleServiceRF task.wait(0.01) end)
+end
+
+-- AUTO CLICK TOGGLE (500 THREADS)
+AutoClickToggle:OnChanged(function()
+    if AutoClickToggle.Value then
+        for _, thread in pairs(autoClickThreads) do
+            if typeof(thread) == "thread" then task.cancel(thread) elseif typeof(thread) == "table" then thread.active = false end
+        end
+        autoClickThreads = {}
+        
+        if cleanupConnections.autoClick then cleanupConnections.autoClick:Disconnect() end
+        
+        task.spawn(function()
+            for i = 1, 500 do
+                local threadData = { active = true }
+                table.insert(autoClickThreads, threadData)
+                task.spawn(function()
+                    while threadData.active and AutoClickToggle.Value do
+                        pcall(function()
+                            ArmwrestleServiceRF:WaitForChild("RequestClick"):InvokeServer()
+                            ArmwrestleServiceRF:WaitForChild("RequestCritHit"):InvokeServer()
+                        end)
+                        task.wait()
+                    end
+                end)
+                task.wait(0.001) 
+            end
+        end)
+        
+        cleanupConnections.autoClick = task.spawn(function()
+            while AutoClickToggle.Value do
+                task.wait(5) 
+                if AutoClickToggle.Value then cleanupRequests() end
+            end
+        end)
+    else
+        for _, thread in pairs(autoClickThreads) do
+            if typeof(thread) == "thread" then task.cancel(thread) elseif typeof(thread) == "table" then thread.active = false end
+        end
+        autoClickThreads = {}
+        if cleanupConnections.autoClick then task.cancel(cleanupConnections.autoClick) cleanupConnections.autoClick = nil end
+        cleanupRequests()
+    end
+end)
+
+-- AUTO FIGHT TOGGLE (AUTO APPLIES WIN + 500 THREADS)
+AutoFightToggle:OnChanged(function()
+    if AutoFightToggle.Value then
+        -- AUTOMATICALLY APPLY HACKS HERE
+        applyInstantWinHacks()
+        
+        local selectedName = modelDropdown.Value
+        teleportToNpcZone(selectedName)
+        
+        for _, flag in pairs(autoFightThreads) do flag.active = false end
+        autoFightThreads = {}
+        
+        if cleanupConnections.autoFight then cleanupConnections.autoFight:Disconnect() end
+        
+        task.spawn(function()
+            for i = 1, 500 do
+                local threadFlag = { active = true }
+                table.insert(autoFightThreads, threadFlag)
+                
+                task.spawn(function()
+                    while threadFlag.active and AutoFightToggle.Value do
+                        local selectedName = modelDropdown.Value
+                        if selectedName then
+                            local currentTime = tick()
+                            if currentTime - lastZoneCheck > 2 then 
+                                teleportToNpcZone(selectedName)
+                                lastZoneCheck = currentTime
+                            end
+                            
+                            -- Start Fight
+                            local args = { [1] = selectedName }
+                            pcall(function()
+                                ArmwrestleServiceRF:WaitForChild("RequestStartFight"):InvokeServer(unpack(args))
+                                -- AGGRESSIVE: Immediately request end to trigger win logic
+                                task.wait()
+                                ArmwrestleServiceRE:WaitForChild("RequestEndFight"):FireServer("SkipEnd")
+                            end)
+                        end
+                        task.wait() 
+                    end
+                end)
+                task.wait(0.001) 
+            end
+        end)
+        
+        cleanupConnections.autoFight = task.spawn(function()
+            while AutoFightToggle.Value do
+                task.wait(5) 
+                if AutoFightToggle.Value then cleanupRequests() end
+            end
+        end)
+    else
+        for _, flag in pairs(autoFightThreads) do flag.active = false end
+        autoFightThreads = {}
+        if cleanupConnections.autoFight then task.cancel(cleanupConnections.autoFight) cleanupConnections.autoFight = nil end
+        cleanupRequests()
+    end
+end)
+
+modelDropdown:OnChanged(function()
+    if AutoFightToggle.Value then
+        local selectedName = modelDropdown.Value
+        teleportToNpcZone(selectedName)
+        lastZoneCheck = tick()
+    end
+end)
+
+local function aggressiveCleanup()
+    pcall(function() local oldService = ArmwrestleServiceRF ArmwrestleServiceRF = KnitServices:WaitForChild("ArmWrestleService"):WaitForChild("RF") end)
+    collectgarbage("count") task.wait(0.1)
+end
+
+SaveManager:SetLibrary(Library)
+InterfaceManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+SaveManager:SetIgnoreIndexes{}
+InterfaceManager:SetFolder("FluentScriptHub")
+SaveManager:SetFolder("FluentScriptHub/specific-game")
+InterfaceManager:BuildInterfaceSection(Tabs.Settings)
+SaveManager:BuildConfigSection(Tabs.Settings)
+Window:SelectTab(1)
+SaveManager:LoadAutoloadConfig()
