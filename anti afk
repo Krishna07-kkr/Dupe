@@ -164,6 +164,7 @@ end)
 
 
 
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/applehub"))()
 
 
 
