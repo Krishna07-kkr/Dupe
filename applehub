@@ -2,7 +2,7 @@
 
 -- UI Library & Managers
 local Library = loadstring(game:HttpGet("https://github.com/ActualMasterOogway/Fluent-Renewed/releases/latest/download/Fluent.luau"))()
-local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/savemanager"))()
+local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Krishna07-kkr/remotesavemanager/refs/heads/main/savemanager"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/master/Addons/InterfaceManager.luau"))()
 
 -- ===========================
