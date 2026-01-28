@@ -79,17 +79,16 @@ local modelDropdown = Tabs.AutoFight:AddDropdown("ModelDropdown", {
 
 local AutoClickToggle = Tabs.AutoFight:AddToggle("AutoClick", {
     Title = "Auto Click/Crit",
-    Description = "500 Threads - High Speed.",
+    Description = "Supports the Instant Win hack.",
     Default = false
 })
 
 local AutoFightToggle = Tabs.AutoFight:AddToggle("AutoFight", {
-    Title = "Auto Fight (Auto Win + 500 Threads)",
-    Description = "Automatically starts fights, applies instant win, and spams requests.",
+    Title = "Auto Fight (Instant Win)",
+    Description = "Automatically starts fights and applies instant win hacks.",
     Default = false
 })
 
--- Block Analytics
 pcall(function()
     local gameAnalyticsError = game:GetService("ReplicatedStorage"):FindFirstChild("GameAnalyticsError")
     if gameAnalyticsError then
@@ -97,19 +96,42 @@ pcall(function()
     end
 end)
 
+local AlwaysWin = Tabs.AutoFight:AddButton({
+    Title = "Force Instant Win (Manual)",
+    Description = "If Auto Fight isn't fast enough, click this.",
+    Callback = function()
+        coroutine.resume(coroutine.create(function()
+            local armWrestle = require(game:GetService("ReplicatedStorage").Controllers.Fighting.ArmWrestleController)
+            local originalIncrementPower = armWrestle.IncrementPower
+            armWrestle.IncrementPower = function(self, amount)
+                originalIncrementPower(self, math.huge) 
+            end
+            spawn(function()
+                while armWrestle.Fighting do
+                    if armWrestle.Health and armWrestle.MaxHealth then armWrestle.Health = armWrestle.MaxHealth end
+                    task.wait(0.01)
+                end
+            end)
+            local originalUpdateFight = armWrestle.UpdateFight
+            armwrestle.UpdateFight = function(self) end
+        end))
+    end
+})
+
 -- Services
 local KnitServices = game:GetService("ReplicatedStorage").Packages.Knit.Services
 local ArmwrestleServiceRF = KnitServices:WaitForChild("ArmWrestleService"):WaitForChild("RF")
-local ArmwrestleServiceRE = KnitServices:WaitForChild("ArmWrestleService"):WaitForChild("RE")
 local ZoneService = KnitServices:WaitForChild("ZoneService"):WaitForChild("RE")
 
 local autoClickThreads = {}
 local autoFightThreads = {}
 local cleanupConnections = {}
 local lastZoneCheck = 0
+
+-- NEW: Variable to track if hacks are applied
 local hacksApplied = false
 
--- AUTOMATIC INSTANT WIN FUNCTION
+-- NEW: Function to apply Instant Win
 local function applyInstantWinHacks()
     if hacksApplied then return end
     hacksApplied = true
@@ -117,13 +139,11 @@ local function applyInstantWinHacks()
     pcall(function()
         local armWrestle = require(game:GetService("ReplicatedStorage").Controllers.Fighting.ArmWrestleController)
         
-        -- Hook Power
         local originalIncrementPower = armWrestle.IncrementPower
         armWrestle.IncrementPower = function(self, amount)
             originalIncrementPower(self, math.huge) 
         end
         
-        -- Hook Health
         spawn(function()
             while true do
                 if armWrestle.Fighting then
@@ -135,11 +155,8 @@ local function applyInstantWinHacks()
             end
         end)
         
-        -- Hook UpdateFight (Prevent NPC resistance)
         local originalUpdateFight = armWrestle.UpdateFight
-        armWrestle.UpdateFight = function(self)
-            -- Do nothing
-        end
+        armWrestle.UpdateFight = function(self) end
     end)
 end
 
@@ -173,7 +190,7 @@ local function teleportToNpcZone(npcName)
             if spawnLoc then
                 local args = { [1] = spawnLoc }
                 ZoneService.teleport:FireServer(unpack(args))
-                task.wait(0.1) 
+                task.wait(0.1) -- 0.1s Delay
                 return true
             end
         end
@@ -186,7 +203,6 @@ local function cleanupRequests()
     pcall(function() local temp = ArmwrestleServiceRF task.wait(0.01) end)
 end
 
--- AUTO CLICK TOGGLE (500 THREADS)
 AutoClickToggle:OnChanged(function()
     if AutoClickToggle.Value then
         for _, thread in pairs(autoClickThreads) do
@@ -229,10 +245,9 @@ AutoClickToggle:OnChanged(function()
     end
 end)
 
--- AUTO FIGHT TOGGLE (AUTO APPLIES WIN + 500 THREADS)
 AutoFightToggle:OnChanged(function()
     if AutoFightToggle.Value then
-        -- AUTOMATICALLY APPLY HACKS HERE
+        -- APPLY HACKS AUTOMATICALLY HERE
         applyInstantWinHacks()
         
         local selectedName = modelDropdown.Value
@@ -243,36 +258,30 @@ AutoFightToggle:OnChanged(function()
         
         if cleanupConnections.autoFight then cleanupConnections.autoFight:Disconnect() end
         
-        task.spawn(function()
-            for i = 1, 500 do
-                local threadFlag = { active = true }
-                table.insert(autoFightThreads, threadFlag)
-                
-                task.spawn(function()
-                    while threadFlag.active and AutoFightToggle.Value do
-                        local selectedName = modelDropdown.Value
-                        if selectedName then
-                            local currentTime = tick()
-                            if currentTime - lastZoneCheck > 2 then 
-                                teleportToNpcZone(selectedName)
-                                lastZoneCheck = currentTime
-                            end
-                            
-                            -- Start Fight
-                            local args = { [1] = selectedName }
-                            pcall(function()
-                                ArmwrestleServiceRF:WaitForChild("RequestStartFight"):InvokeServer(unpack(args))
-                                -- AGGRESSIVE: Immediately request end to trigger win logic
-                                task.wait()
-                                ArmwrestleServiceRE:WaitForChild("RequestEndFight"):FireServer("SkipEnd")
-                            end)
+        for i = 1, 500 do
+            local threadFlag = { active = true }
+            table.insert(autoFightThreads, threadFlag)
+            
+            task.spawn(function()
+                while threadFlag.active and AutoFightToggle.Value do
+                    local selectedName = modelDropdown.Value
+                    if selectedName then
+                        local currentTime = tick()
+                        if currentTime - lastZoneCheck > 2 then 
+                            teleportToNpcZone(selectedName)
+                            lastZoneCheck = currentTime
                         end
-                        task.wait() 
+                        
+                        local args = { [1] = selectedName }
+                        pcall(function()
+                            ArmwrestleServiceRF:WaitForChild("RequestStartFight"):InvokeServer(unpack(args))
+                        end)
                     end
-                end)
-                task.wait(0.001) 
-            end
-        end)
+                    task.wait(0.01)
+                end
+            end)
+            task.wait(0.001) 
+        end
         
         cleanupConnections.autoFight = task.spawn(function()
             while AutoFightToggle.Value do
