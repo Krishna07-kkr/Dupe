@@ -111,8 +111,8 @@ if workspace.GameObjects.ArmWrestling:FindFirstChild("NorthPole") then
     npcLocations["NorthPole"] = workspace.GameObjects.ArmWrestling.NorthPole.NPC
 end
 
--- 2. Auto-Loop for Worlds 1 to 22
-for i = 1, 22 do
+-- 2. Auto-Loop for Worlds 1 to 23
+for i = 1, 23 do
     local worldNum = tostring(i)
     local worldFolder = workspace.GameObjects.ArmWrestling:FindFirstChild(worldNum)
     
