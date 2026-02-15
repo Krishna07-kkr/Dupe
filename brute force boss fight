@@ -6,8 +6,8 @@ local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.
 
 -- Window Setup
 local Window = Library:Window{
-    Title = "Christmas Event",
-    SubTitle = "By Duckie",
+    Title = "aws boss fight",
+    SubTitle = "By table",
     TabWidth = 160,
     Size =  UDim2.fromOffset(580, 460),
     Resize = false, 
@@ -19,11 +19,7 @@ local Window = Library:Window{
 local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
     AutoFight = Window:AddTab({ Title = "Main", Icon = "crown" }),
-    Eggs = Window:AddTab({ Title = "Eggs", Icon = "egg" }),
-    Merchant = Window:AddTab({ Title = "Merchant", Icon = "phosphor-shopping-cart-fill" }),
-    Tower = Window:AddTab({ Title = "Tower", Icon = "castle" }),
-    Christmas = Window:AddTab({ Title = "Christmas Stuff", Icon = "snowflake" }),
-    Gift = Window:AddTab({ Title = "Gift Machine", Icon = "gift" }),
+
 }
 
 -- ===========================
