@@ -288,16 +288,16 @@ AutoClickToggle:OnChanged(function()
                             ArmwrestleServiceRF:WaitForChild("RequestClick"):InvokeServer()
                             ArmwrestleServiceRF:WaitForChild("RequestCritHit"):InvokeServer()
                         end)
-                        task.wait()
+                        task.wait(0.1)
                     end
                 end)
-                task.wait(0.001) 
+                task.wait(0.1)
             end
         end)
         
         cleanupConnections.autoClick = task.spawn(function()
             while AutoClickToggle.Value do
-                task.wait(5) 
+                task.wait(1) 
                 if AutoClickToggle.Value then cleanupRequests() end
             end
         end)
@@ -345,12 +345,12 @@ AutoFightToggle:OnChanged(function()
                     task.wait(0.01)
                 end
             end)
-            task.wait(0.001) 
+            task.wait(0.1) 
         end
         
         cleanupConnections.autoFight = task.spawn(function()
             while AutoFightToggle.Value do
-                task.wait(5) 
+                task.wait(1) 
                 if AutoFightToggle.Value then cleanupRequests() end
             end
         end)
