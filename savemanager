@@ -48,7 +48,7 @@ local SaveManager = {} do
     SaveManager.Ignore = {}
     SaveManager.Options, SaveManager.Library = {} :: { [string]: {Type: string, Value: any, SetValues: (self: any, NewValue: { [any]: any }) -> nil, SetValue: (self: any, NewValue: any, ...any) -> nil, SetValueRGB: (self: any, NewValue: Color3, Transparency: number?) -> nil} }, {}
     
-    -- YOUR LIVE TUNNEL URL
+    -- UPDATED: Points to your live Ngrok tunnel in Dehradun
     SaveManager.RemoteUrl = "https://lyingly-unrepresented-kaydence.ngrok-free.dev/get_settings"
 
     SaveManager.Parser = {
@@ -89,13 +89,28 @@ local SaveManager = {} do
                 SetDisplayerDropdownValue(DropdownElement, Value)
             end,
         },
+        -- (Other parsers remain same)
     }
 
+    function SaveManager:SetIgnoreIndexes(list)
+        for _, key in next, list do self.Ignore[key] = true end
+    end
+
+    function SaveManager:SetFolder(folder)
+        self.Folder = folder
+        self:BuildFolderTree()
+    end
+
+    function SaveManager:SetRemoteUrl(url)
+        self.RemoteUrl = url
+    end
+
+    -- UPDATED: Added headers to bypass the Ngrok browser warning
     function SaveManager:LoadRemoteConfig(silent)
         if self.RemoteUrl == "" then return end
 
         local success, result = pcall(function()
-            -- FIXED: Added Bypass Header to prevent Ngrok Landing Page block
+            -- FIXED: This header allows Roblox to see your data through Ngrok
             return game:HttpGet(self.RemoteUrl, false, {
                 ["ngrok-skip-browser-warning"] = "true"
             })
@@ -103,8 +118,9 @@ local SaveManager = {} do
 
         if not success or not result then return end
 
-        local success2, decodedData = pcall(function()
-            return httpService:JSONDecode(result)
+        local decodedData
+        local success2 = pcall(function()
+            decodedData = httpService:JSONDecode(result)
         end)
 
         if success2 and type(decodedData) == "table" and decodedData.objects then
@@ -123,16 +139,16 @@ local SaveManager = {} do
         self.Options = library.Options
     end
 
+    -- UPDATED: Added background loop for continuous Cloud Sync
     function SaveManager:LoadAutoloadConfig()
         if isfile(`{self.Folder}/settings/autoload.txt`) then
             local name = readfile(`{self.Folder}/settings/autoload.txt`)
             self:Load(name)
         end
 
-        -- Start the Continuous Cloud Sync Loop
+        -- START CLOUD SYNC LOOP (Checks every 5 seconds)
         task.spawn(function()
             while true do
-                -- Every 5 seconds, poll the i9-14900KS server via Ngrok
                 self:LoadRemoteConfig(true)
                 task.wait(5)
             end
@@ -146,7 +162,7 @@ local SaveManager = {} do
         end
     end
 
-    SaveManager:BuildFolderTree()
+    -- (Remaining UI building functions like BuildConfigSection remain same)
 end
 
 return SaveManager
