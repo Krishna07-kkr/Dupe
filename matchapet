@@ -1,0 +1,123 @@
+-- [[ CONFIGURATION ]]
+local TARGET_PETS = {"OlympicValentineArcher" , "MegaLovelyGoblin" , "MegaCupid" } -- Add pets here
+local ZONE = "LoveCloud"
+local WEBHOOK_URL = "https://discord.com/api/webhooks/1474114586688094424/P1upI0DS5eYTMPqDAI_aKuhANT4j5Bfv_P4uAZsyG4BO7oPUMfPKQpJ3oRsQ8vjzaKbH" -- Paste your Discord Webhook URL here
+
+-- [[ PING SETTINGS ]]
+local USE_PING = true 
+local DISCORD_USER_ID = "982878713437880320" -- Paste your Numerical ID here (e.g. 9876543210123)
+
+-- [[ SERVICES ]]
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local CollectionService = game:GetService("CollectionService")
+local HttpService = game:GetService("HttpService")
+
+-- [[ SETUP ]]
+local Player = Players.LocalPlayer
+local PlayerGui = Player:WaitForChild("PlayerGui")
+local MatchGui = PlayerGui:WaitForChild("MatchAPet")
+local PetNameLabel = MatchGui:WaitForChild("Stats"):WaitForChild("PetName")
+
+local function getRemote(name)
+    local path = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("MatchAPetService"):WaitForChild("RF")
+    return path:WaitForChild(name)
+end
+
+local RequestStart = getRemote("RequestStartMatch")
+local RequestTrash = getRemote("RequestTrashPet")
+local RequestBuy   = getRemote("RequestPurchasePet")
+
+-- [[ WEBHOOK LOGIC ]]
+local function sendWebhook(petName)
+    if WEBHOOK_URL == "" or WEBHOOK_URL == "YOUR_WEBHOOK_URL_HERE" then return end
+    
+    local ping = (USE_PING and DISCORD_USER_ID ~= "") and ("<@" .. DISCORD_USER_ID .. ">") or ""
+    
+    local data = {
+        ["content"] = ping .. " **- Target Found!**",
+        ["embeds"] = {{
+            ["title"] = "🎯 Pet Automatically Purchased!",
+            ["description"] = "Successfully bought: **" .. petName .. "**\nZone: **" .. ZONE .. "**",
+            ["color"] = 65280, -- Green
+            ["footer"] = { ["text"] = "Match-A-Pet Auto-Buyer" },
+            ["timestamp"] = os.date("!%Y-%m-%dT%H:%M:%SZ")
+        }}
+    }
+    
+    local success, err = pcall(function()
+        (syn and syn.request or http_request or request)({
+            Url = WEBHOOK_URL,
+            Method = "POST",
+            Headers = {["Content-Type"] = "application/json"},
+            Body = HttpService:JSONEncode(data)
+        })
+    end)
+    if not success then warn("Webhook failed: " .. tostring(err)) end
+end
+
+-- [[ TELEPORT LOGIC ]]
+local function teleportToMachine()
+    for _, machine in pairs(CollectionService:GetTagged("MatchAPet")) do
+        if machine:GetAttribute("Zone") == ZONE then
+            local primary = machine:WaitForChild("Primary", 5)
+            if primary and Player.Character and Player.Character:FindFirstChild("HumanoidRootPart") then
+                Player.Character.HumanoidRootPart.CFrame = primary.CFrame * CFrame.new(0, 3, 0)
+                task.wait(1)
+                return true
+            end
+        end
+    end
+    warn("Machine for " .. ZONE .. " not found!")
+    return false
+end
+
+-- [[ MAIN LOOP ]]
+local function runAutoMatch()
+    print("--- Multi-Target Matcher Started ---")
+    
+    while true do
+        if not MatchGui.Enabled then
+            teleportToMachine()
+            print("Starting Match...")
+            RequestStart:InvokeServer(ZONE)
+            
+            local timeout = 0
+            repeat timeout = timeout + task.wait(0.2) until MatchGui.Enabled or timeout > 5
+        end
+
+        while MatchGui.Enabled do
+            local currentVisiblePet = PetNameLabel.Text
+            local cleanName = currentVisiblePet:gsub("%s+", "") 
+            
+            local isTarget = false
+            for _, target in pairs(TARGET_PETS) do
+                if string.find(cleanName, target) then
+                    isTarget = true
+                    break
+                end
+            end
+            
+            if cleanName == "" or cleanName == "nil" then
+                task.wait(0.15)
+            elseif isTarget then
+                print("!!! TARGET FOUND !!! Buying: " .. cleanName)
+                RequestBuy:InvokeServer()
+                sendWebhook(cleanName)
+                task.wait(1) 
+            else
+                -- High-speed Trash
+                pcall(function() RequestTrash:InvokeServer() end)
+                
+                local waitTimeout = 0
+                repeat 
+                    waitTimeout = waitTimeout + task.wait(0.05)
+                until PetNameLabel.Text ~= currentVisiblePet or not MatchGui.Enabled or waitTimeout > 2
+            end
+            task.wait(0.05)
+        end
+        task.wait(1) 
+    end
+end
+
+task.spawn(runAutoMatch)
