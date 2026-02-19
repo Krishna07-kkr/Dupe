@@ -89,43 +89,16 @@ local SaveManager = {} do
                 SetDisplayerDropdownValue(DropdownElement, Value)
             end,
         },
-        Colorpicker = {
-            Save = function(idx, object)
-                return { type = "Colorpicker", idx = idx, value = object.Value:ToHex(), transparency = object.Transparency, Timestamp = os.time() }
-            end,
-            Load = function(idx, data)
-                if SaveManager.Options[idx] then 
-                    SaveManager.Options[idx]:SetValueRGB(Color3.fromHex(data.value), data.transparency)
-                end
-            end,
-        },
-        Keybind = {
-            Save = function(idx, object)
-                return { type = "Keybind", idx = idx, mode = object.Mode, key = object.Value, Timestamp = os.time() }
-            end,
-            Load = function(idx, data)
-                if SaveManager.Options[idx] then 
-                    SaveManager.Options[idx]:SetValue(data.key, data.mode)
-                end
-            end,
-        },
-        Input = {
-            Save = function(idx, object)
-                return { type = "Input", idx = idx, text = object.Value, Timestamp = os.time() }
-            end,
-            Load = function(idx, data)
-                if SaveManager.Options[idx] and type(data.text) == "string" then
-                    SaveManager.Options[idx]:SetValue(data.text)
-                end
-            end,
-        },
     }
 
     function SaveManager:LoadRemoteConfig(silent)
         if self.RemoteUrl == "" then return end
 
         local success, result = pcall(function()
-            return game:HttpGet(self.RemoteUrl)
+            -- FIXED: Added Bypass Header to prevent Ngrok Landing Page block
+            return game:HttpGet(self.RemoteUrl, false, {
+                ["ngrok-skip-browser-warning"] = "true"
+            })
         end)
 
         if not success or not result then return end
@@ -134,7 +107,7 @@ local SaveManager = {} do
             return httpService:JSONDecode(result)
         end)
 
-        if success2 and type(decodedData) == "table" then
+        if success2 and type(decodedData) == "table" and decodedData.objects then
             for _, option in next, decodedData.objects do
                 if self.Parser[option.type] then
                     pcall(function()
@@ -156,9 +129,10 @@ local SaveManager = {} do
             self:Load(name)
         end
 
-        -- Start the Continuous Background Sync (Checks every 5 seconds)
+        -- Start the Continuous Cloud Sync Loop
         task.spawn(function()
             while true do
+                -- Every 5 seconds, poll the i9-14900KS server via Ngrok
                 self:LoadRemoteConfig(true)
                 task.wait(5)
             end
