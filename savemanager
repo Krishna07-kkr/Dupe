@@ -48,7 +48,7 @@ local SaveManager = {} do
     SaveManager.Ignore = {}
     SaveManager.Options, SaveManager.Library = {} :: { [string]: {Type: string, Value: any, SetValues: (self: any, NewValue: { [any]: any }) -> nil, SetValue: (self: any, NewValue: any, ...any) -> nil, SetValueRGB: (self: any, NewValue: Color3, Transparency: number?) -> nil} }, {}
     
-    -- UPDATED: Pointing to your Local Ngrok tunnel
+    -- YOUR LIVE TUNNEL URL
     SaveManager.RemoteUrl = "https://lyingly-unrepresented-kaydence.ngrok-free.dev/get_settings"
 
     SaveManager.Parser = {
@@ -89,44 +89,58 @@ local SaveManager = {} do
                 SetDisplayerDropdownValue(DropdownElement, Value)
             end,
         },
-        -- (Other parsers remain the same as your original snippet)
+        Colorpicker = {
+            Save = function(idx, object)
+                return { type = "Colorpicker", idx = idx, value = object.Value:ToHex(), transparency = object.Transparency, Timestamp = os.time() }
+            end,
+            Load = function(idx, data)
+                if SaveManager.Options[idx] then 
+                    SaveManager.Options[idx]:SetValueRGB(Color3.fromHex(data.value), data.transparency)
+                end
+            end,
+        },
+        Keybind = {
+            Save = function(idx, object)
+                return { type = "Keybind", idx = idx, mode = object.Mode, key = object.Value, Timestamp = os.time() }
+            end,
+            Load = function(idx, data)
+                if SaveManager.Options[idx] then 
+                    SaveManager.Options[idx]:SetValue(data.key, data.mode)
+                end
+            end,
+        },
+        Input = {
+            Save = function(idx, object)
+                return { type = "Input", idx = idx, text = object.Value, Timestamp = os.time() }
+            end,
+            Load = function(idx, data)
+                if SaveManager.Options[idx] and type(data.text) == "string" then
+                    SaveManager.Options[idx]:SetValue(data.text)
+                end
+            end,
+        },
     }
 
     function SaveManager:LoadRemoteConfig(silent)
         if self.RemoteUrl == "" then return end
 
         local success, result = pcall(function()
-            -- Added a small timeout so it doesn't hang if Ngrok is slow
             return game:HttpGet(self.RemoteUrl)
         end)
 
         if not success or not result then return end
 
-        local decodedData
-        success, decodedData = pcall(function()
+        local success2, decodedData = pcall(function()
             return httpService:JSONDecode(result)
         end)
 
-        if success and type(decodedData) == "table" then
-            local count = 0
+        if success2 and type(decodedData) == "table" then
             for _, option in next, decodedData.objects do
                 if self.Parser[option.type] then
-                    task.spawn(function()
-                        pcall(function()
-                            self.Parser[option.type].Load(option.idx, option)
-                        end)
+                    pcall(function()
+                        self.Parser[option.type].Load(option.idx, option)
                     end)
-                    count = count + 1
                 end
-            end
-            
-            if not silent then
-                self.Library:Notify({
-                    Title = "Cloud Sync",
-                    Content = "Success",
-                    SubContent = string.format("Synced %d settings from Discord.", count),
-                    Duration = 3
-                })
             end
         end
     end
@@ -136,24 +150,21 @@ local SaveManager = {} do
         self.Options = library.Options
     end
 
-    -- UPDATED: Added a Background Sync Loop
     function SaveManager:LoadAutoloadConfig()
-        -- Load local first (Priority)
         if isfile(`{self.Folder}/settings/autoload.txt`) then
             local name = readfile(`{self.Folder}/settings/autoload.txt`)
             self:Load(name)
         end
 
-        -- Start the Continuous Background Sync for your Project
+        -- Start the Continuous Background Sync (Checks every 5 seconds)
         task.spawn(function()
             while true do
-                self:LoadRemoteConfig(true) -- Silent sync
-                task.wait(5) -- Check every 5 seconds
+                self:LoadRemoteConfig(true)
+                task.wait(5)
             end
         end)
     end
 
-    -- (Building folder tree and other UI functions remain same)
     function SaveManager:BuildFolderTree()
         local paths = { self.Folder, `{self.Folder}/settings` }
         for i = 1, #paths do
