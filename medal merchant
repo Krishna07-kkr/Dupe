@@ -1,0 +1,58 @@
+local Knit = require(game:GetService("ReplicatedStorage").Packages.Knit)
+local MedalMerchantData = require(game:GetService("ReplicatedStorage").Data.MedalMerchant)
+
+-- Services and Controllers
+local MedalService = Knit.GetService("MedalMerchantService")
+local CustomReplicaController = Knit.GetController("CustomReplicaController")
+
+-- Configuration
+local WAIT_TIME = 3600 -- 60 minutes in seconds
+
+-- Function to check your current inventory so we don't spam owned medals
+local function getInventory()
+    local replica = CustomReplicaController:GetReplica()
+    if replica and replica.Data and replica.Data.Medals then
+        return replica.Data.Medals.Inventory or {}
+    end
+    return {}
+end
+
+local function runPurchaseCycle()
+    print("--- Starting Hourly Medal Purchase Cycle ---")
+    
+    local inventory = getInventory()
+    
+    -- Organize unowned medals for sorting
+    local toPurchase = {}
+    for name, info in pairs(MedalMerchantData) do
+        if not table.find(inventory, name) then
+            table.insert(toPurchase, {Name = name, Price = info.Price})
+        end
+    end
+    
+    -- Sort by Price (Lowest to Highest) to maximize efficiency
+    table.sort(toPurchase, function(a, b)
+        return a.Price < b.Price
+    end)
+
+    -- Attempt to buy each medal. 
+    -- If you don't have enough gems, the server will simply reject it.
+    for _, medal in ipairs(toPurchase) do
+        print("Attempting to buy: " .. medal.Name .. " (" .. medal.Price .. " Gems)")
+        
+        -- Direct call to the MedalMerchantService
+        MedalService:Buy(medal.Name)
+        
+        -- Small wait between individual purchases to prevent lag or anti-spam
+        task.wait(0.5) 
+    end
+    
+    print("Cycle finished. Next check in 60 minutes.")
+end
+
+-- Infinite loop
+print("Medal Merchant Auto-Buyer Loaded and Active.")
+while true do
+    runPurchaseCycle()
+    task.wait(WAIT_TIME)
+end
