@@ -288,10 +288,10 @@ AutoClickToggle:OnChanged(function()
                             ArmwrestleServiceRF:WaitForChild("RequestClick"):InvokeServer()
                             ArmwrestleServiceRF:WaitForChild("RequestCritHit"):InvokeServer()
                         end)
-                        task.wait(0.1)
+                        task.wait(0.01)
                     end
                 end)
-                task.wait(0.1)
+                task.wait(0.01)
             end
         end)
         
@@ -342,10 +342,10 @@ AutoFightToggle:OnChanged(function()
                             ArmwrestleServiceRF:WaitForChild("RequestStartFight"):InvokeServer(unpack(args))
                         end)
                     end
-                    task.wait(0.01)
+                    task.wait(0.001)
                 end
             end)
-            task.wait(0.1) 
+            task.wait(0.01) 
         end
         
         cleanupConnections.autoFight = task.spawn(function()
