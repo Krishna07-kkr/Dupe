@@ -1,0 +1,181 @@
+local player = game.Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local merchant = game.Workspace.Zones.AtomicIsland.Interactables.AxeMerchant
+
+if merchant:IsA("Model") then
+    character:MoveTo(merchant:GetPivot().Position)
+elseif merchant:IsA("BasePart") then
+    character:MoveTo(merchant.Position)
+else
+    local childPart = merchant:FindFirstChildWhichIsA("BasePart", true)
+    if childPart then
+        character:MoveTo(childPart.Position)
+    end
+end
+
+
+
+local Players = game:GetService("Players")
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local UserInputService = game:GetService("UserInputService")
+local Workspace = game:GetService("Workspace")
+
+local player = Players.LocalPlayer
+local character = player.Character or player.CharacterAdded:Wait()
+local rootPart = character:WaitForChild("HumanoidRootPart")
+
+
+local breakableService = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("ChaosBreakablesService"):WaitForChild("RF")
+local toggleRemote = breakableService:WaitForChild("ToggleToolEquipped")
+local clickRemote = breakableService:WaitForChild("Clicked")
+
+local axeFolder = Workspace.GameObjects.ChaosBreakables.Axe
+local _Toggled = false
+local _Running = true
+local _MultiSelect = false 
+local treeCount = 4
+local targetType = "Palm" 
+local clickSpeed = 0.02 
+
+
+player.CharacterAdded:Connect(function(newChar)
+    character = newChar
+    rootPart = newChar:WaitForChild("HumanoidRootPart")
+end)
+
+
+local ScreenGui = Instance.new("ScreenGui", player.PlayerGui)
+local Main = Instance.new("Frame", ScreenGui); Main.Size = UDim2.new(0, 180, 0, 305); Main.Position = UDim2.new(0.5, -90, 0.4, 0); Main.BackgroundColor3 = Color3.fromRGB(20, 20, 30); Instance.new("UICorner", Main)
+
+local StartBtn = Instance.new("TextButton", Main); StartBtn.Size = UDim2.new(0, 160, 0, 35); StartBtn.Position = UDim2.new(0, 10, 0, 10); StartBtn.Text = "START FARM"; StartBtn.BackgroundColor3 = Color3.fromRGB(0, 180, 100); StartBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", StartBtn)
+local TypeBtn = Instance.new("TextButton", Main); TypeBtn.Size = UDim2.new(0, 160, 0, 35); TypeBtn.Position = UDim2.new(0, 10, 0, 50); TypeBtn.Text = "Target: " .. targetType; TypeBtn.BackgroundColor3 = Color3.fromRGB(70, 70, 100); TypeBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", TypeBtn)
+local MultiBtn = Instance.new("TextButton", Main); MultiBtn.Size = UDim2.new(0, 160, 0, 35); MultiBtn.Position = UDim2.new(0, 10, 0, 90); MultiBtn.Text = "Mode: Single Type"; MultiBtn.BackgroundColor3 = Color3.fromRGB(40, 80, 120); MultiBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", MultiBtn)
+local SpeedBtn = Instance.new("TextButton", Main); SpeedBtn.Size = UDim2.new(0, 160, 0, 35); SpeedBtn.Position = UDim2.new(0, 10, 0, 130); SpeedBtn.Text = "Speed: Fast"; SpeedBtn.BackgroundColor3 = Color3.fromRGB(100, 70, 150); SpeedBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", SpeedBtn)
+local CountBtn = Instance.new("TextButton", Main); CountBtn.Size = UDim2.new(0, 160, 0, 35); CountBtn.Position = UDim2.new(0, 10, 0, 170); CountBtn.Text = "Trees: " .. treeCount; CountBtn.BackgroundColor3 = Color3.fromRGB(50, 50, 50); CountBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", CountBtn)
+local DestroyBtn = Instance.new("TextButton", Main); DestroyBtn.Size = UDim2.new(0, 160, 0, 35); DestroyBtn.Position = UDim2.new(0, 10, 0, 260); DestroyBtn.Text = "EXIT SCRIPT"; DestroyBtn.BackgroundColor3 = Color3.fromRGB(150, 0, 0); DestroyBtn.TextColor3 = Color3.new(1,1,1); Instance.new("UICorner", DestroyBtn)
+
+
+local d, ds, sp; Main.InputBegan:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = true; ds = i.Position; sp = Main.Position end end)
+UserInputService.InputChanged:Connect(function(i) if d and i.UserInputType == Enum.UserInputType.MouseMovement then local del = i.Position - ds; Main.Position = UDim2.new(sp.X.Scale, sp.X.Offset + del.X, sp.Y.Scale, sp.Y.Offset + del.Y) end end)
+UserInputService.InputEnded:Connect(function(i) if i.UserInputType == Enum.UserInputType.MouseButton1 then d = false end end)
+
+
+local function getTargets()
+    local found = {}
+    local children = axeFolder:GetChildren()
+    
+    for _, obj in ipairs(children) do
+        if string.find(obj.Name, "InfectedTree") and obj:GetAttribute("Destroyed") ~= true then
+            table.insert(found, obj)
+        end
+        if #found >= treeCount then return found end 
+    end
+    
+    if #found < treeCount then
+        for _, obj in ipairs(children) do
+            local isMatch = false
+            if _MultiSelect then
+                if (string.find(obj.Name, "Palm") or string.find(obj.Name, "Chaos")) then
+                    isMatch = true
+                end
+            else
+                if string.find(obj.Name, targetType) and targetType ~= "InfectedTree" then
+                    isMatch = true
+                end
+            end
+            
+            if isMatch and obj:GetAttribute("Destroyed") ~= true then
+                if not table.find(found, obj) then
+                    table.insert(found, obj)
+                end
+            end
+            
+            if #found >= treeCount then break end
+        end
+    end
+    
+    return found
+end
+
+task.spawn(function()
+    while _Running do
+        if _Toggled then
+            pcall(function() clickRemote:InvokeServer() end)
+        end
+        task.wait(clickSpeed)
+    end
+end)
+
+task.spawn(function()
+    while _Running do
+        if _Toggled and rootPart then
+            if not character:FindFirstChild("Axe") then
+                toggleRemote:InvokeServer("Axe")
+                task.wait(0.5)
+            end
+
+            local targets = getTargets()
+            if #targets == 0 then
+                task.wait(0.5)
+            else
+                for _, tree in ipairs(targets) do
+                    if not _Toggled or not _Running then break end
+                    local success, treePos = pcall(function() return tree:GetPivot().Position end)
+                    if success and treePos then
+                        rootPart.Velocity = Vector3.new(0,0,0)
+                        rootPart.CFrame = CFrame.lookAt(treePos + Vector3.new(0, 1.5, 2.2), treePos)
+                        task.wait(math.max(clickSpeed * 3, 0.08)) 
+                    end
+                end
+            end
+        else
+            task.wait(0.2)
+        end
+    end
+end)
+
+
+
+MultiBtn.MouseButton1Click:Connect(function()
+    _MultiSelect = not _MultiSelect
+    MultiBtn.Text = _MultiSelect and "Mode: ALL + PRIORITY" or "Mode: Single + PRIORITY"
+    MultiBtn.BackgroundColor3 = _MultiSelect and Color3.fromRGB(0, 120, 200) or Color3.fromRGB(40, 80, 120)
+end)
+
+TypeBtn.MouseButton1Click:Connect(function()
+    if targetType == "Palm" then targetType = "Chaos"
+    elseif targetType == "Chaos" then targetType = "InfectedTree"
+    else targetType = "Palm" end
+    TypeBtn.Text = "Target: " .. targetType
+end)
+
+SpeedBtn.MouseButton1Click:Connect(function()
+    if clickSpeed == 0.02 then
+        clickSpeed = 0.001
+        SpeedBtn.Text = "Speed: INSTANT"; SpeedBtn.BackgroundColor3 = Color3.fromRGB(200, 0, 200)
+    elseif clickSpeed == 0.001 then
+        clickSpeed = 0.1
+        SpeedBtn.Text = "Speed: Slow"; SpeedBtn.BackgroundColor3 = Color3.fromRGB(50, 100, 50)
+    else
+        clickSpeed = 0.02
+        SpeedBtn.Text = "Speed: Fast"; SpeedBtn.BackgroundColor3 = Color3.fromRGB(100, 70, 150)
+    end
+end)
+
+CountBtn.MouseButton1Click:Connect(function()
+    treeCount = (treeCount % 8) + 1
+    CountBtn.Text = "Trees: " .. treeCount
+end)
+
+StartBtn.MouseButton1Click:Connect(function()
+    _Toggled = not _Toggled
+    StartBtn.Text = _Toggled and "STOP" or "START FARM"
+    StartBtn.BackgroundColor3 = _Toggled and Color3.fromRGB(150, 0, 0) or Color3.fromRGB(0, 180, 100)
+end)
+
+DestroyBtn.MouseButton1Click:Connect(function()
+    _Running = false; _Toggled = false; ScreenGui:Destroy()
+end)
+
+
+
