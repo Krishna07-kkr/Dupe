@@ -107,11 +107,8 @@ local npcLocations = {}
 if workspace.GameObjects.ArmWrestling:FindFirstChild("AtomicIsland") then
     npcLocations["AtomicIsland"] = workspace.GameObjects.ArmWrestling.AtomicIsland.NPC
 end
-if workspace.GameObjects.ArmWrestling:FindFirstChild("ChaosIsland") then
-    npcLocations["ChaosIsland"] = workspace.GameObjects.ArmWrestling.ChaosIsland.NPC
-end
-if workspace.GameObjects.ArmWrestling:FindFirstChild("Nuclearlab") then
-    npcLocations["Nuclearlab"] = workspace.GameObjects.ArmWrestling.Nuclearlab.NPC
+if workspace.GameObjects.ArmWrestling:FindFirstChild("NuclearLab") then
+    npcLocations["NuclearLab"] = workspace.GameObjects.ArmWrestling.NuclearLab.NPC
 end
 -- 2. Auto-Loop for Worlds 1 to 23
 for i = 1, 23 do
