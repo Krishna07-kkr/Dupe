@@ -113,9 +113,6 @@ end
 if workspace.GameObjects.ArmWrestling:FindFirstChild("Nuclearlab") then
     npcLocations["Nuclearlab"] = workspace.GameObjects.ArmWrestling.Nuclearlab.NPC
 end
-
-
-
 -- 2. Auto-Loop for Worlds 1 to 23
 for i = 1, 23 do
     local worldNum = tostring(i)
