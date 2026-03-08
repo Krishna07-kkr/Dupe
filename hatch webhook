@@ -1,0 +1,104 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local Knit = require(ReplicatedStorage.Packages.Knit)
+
+local LocalPlayer = Players.LocalPlayer
+local HatchCount = 0 -- Session counter starts at 0
+
+-- ### CONFIGURATION ###
+local WEBHOOKS = {
+    ["Giga"] = "https://discord.com/api/webhooks/1480098923820482590/pzGIDafMWaAPxjYbWUJ_HAu_1YkmxV52rqLG0BUEfM5-ReOpzkQw2VQrmXbSAqaL4qps",
+    ["Mega"] = "https://discord.com/api/webhooks/1480099035045171211/IqpJaPcPQxa6pEa6PY03srbnYqdkLIsgXEVd0kAAuOO1PdYAsvNZu8zKYTSYfCq3YwH6",
+    ["Olympic"] = "https://discord.com/api/webhooks/1480099131413368952/CQxAtIK_WwdxyjDFtekuf7NQNWqsmTa8qX2kjOQivfPLtGMoPGEDxhkddlpIQm1US4xm",
+    ["Default"] = "https://discord.com/api/webhooks/1480099361382993961/NrKBJbeyb7SQfc3BNKC05WfpKFbsfLUtBm3qMJjPwe6L2iSL_suO2O5Vp5eIAB0ygMVr"
+}
+
+local PINGS = {
+    ["Giga"] = { ["Enabled"] = true, ["ID"] = "1480102506712530944" },
+    ["Mega"] = { ["Enabled"] = true, ["ID"] = "1480102470075158641" },
+    ["Olympic"] = { ["Enabled"] = true, ["ID"] = "1480102416975270009" },
+    ["Default"] = { ["Enabled"] = true, ["ID"] = "1480102514320871536" }
+}
+
+local function httpRequest(url, data)
+    local requestFunc = (syn and syn.request) or (http and http.request) or http_request or request
+    if requestFunc then
+        requestFunc({
+            Url = url,
+            Method = "POST",
+            Headers = { ["Content-Type"] = "application/json" },
+            Body = game:GetService("HttpService"):JSONEncode(data)
+        })
+    else
+        warn("Executor does not support request functions!")
+    end
+end
+
+local function getCategory(petName, rarity)
+    if string.find(petName, "Giga") or string.find(rarity, "Giga") then return "Giga" end
+    if string.find(petName, "Mega") or string.find(rarity, "Mega") then return "Mega" end
+    if string.find(petName, "Olympic") or string.find(rarity, "Olympic") then return "Olympic" end
+    return "Default"
+end
+
+local function sendWebhook(petGuid, petInfo)
+    local PetData = require(ReplicatedStorage.Data.PetData)
+    local RarityColors = require(ReplicatedStorage.Data.RarityColors)
+    
+    local petStaticData = PetData[petInfo.Key]
+    if not petStaticData then return end
+
+    HatchCount = HatchCount + 1 -- Increment total hatches
+    
+    local petName = petStaticData.DisplayName or "Unknown"
+    local rarity = petStaticData.Rarity or "Unknown"
+    local category = getCategory(petName, rarity)
+    local targetWebhook = WEBHOOKS[category]
+
+    -- Anti-Spam for Default hatches
+    if category == "Default" then task.wait(0.1) end
+
+    local content = ""
+    if PINGS[category] and PINGS[category].Enabled then
+        content = "<@&" .. PINGS[category].ID .. ">"
+    end
+
+    local color = RarityColors[rarity] or Color3.fromRGB(255, 255, 255)
+    local colorHex = tonumber(string.format("0x%02x%02x%02x", color.R * 255, color.G * 255, color.B * 255))
+    local headshotUrl = string.format("https://www.roblox.com/headshot-thumbnail/image?userId=%d&width=150&height=150&format=png", LocalPlayer.UserId)
+
+    local data = {
+        ["content"] = content,
+        ["embeds"] = {{
+            ["title"] = "🐣 New Pet Hatched! [" .. category .. "]",
+            ["color"] = colorHex,
+            ["thumbnail"] = { ["url"] = headshotUrl },
+            ["author"] = { ["name"] = LocalPlayer.Name, ["icon_url"] = headshotUrl },
+            ["fields"] = {
+                {["name"] = "Pet", ["value"] = petName, ["inline"] = true},
+                {["name"] = "Rarity", ["value"] = rarity, ["inline"] = true},
+                {["name"] = "Shiny", ["value"] = tostring(petInfo.Shiny or false), ["inline"] = true},
+                {["name"] = "Tier", ["value"] = petInfo.Tier or "Normal", ["inline"] = true}
+            },
+            ["footer"] = { ["text"] = "Total Session Hatches: " .. tostring(HatchCount) .. " | User ID: " .. LocalPlayer.UserId },
+            ["timestamp"] = DateTime.now():ToIsoDate()
+        }}
+    }
+
+    httpRequest(targetWebhook, data)
+end
+
+-- Hook Service
+local function Initialize()
+    local PetService = Knit.GetService("PetService")
+    PetService.onPetAdded:Connect(function(guid, petData)
+        sendWebhook(guid, petData)
+    end)
+    print("Hatch Counter & Webhook Active!")
+end
+
+if Knit.Started then
+    Initialize()
+else
+    Knit.OnStart():andThen(Initialize)
+end
