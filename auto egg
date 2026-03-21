@@ -5,51 +5,57 @@ local LocalPlayer = Players.LocalPlayer
 -- // DATA & REMOTES
 local EggData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("EggData"))
 local PurchaseRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("EggService"):WaitForChild("RF"):WaitForChild("purchaseEgg")
+local GamepassTypes = require(ReplicatedStorage:WaitForChild("Enums"):WaitForChild("GamepassTypes"))
 
 -- // CONFIGURATION
-local TARGET_EGG = "Earth" -- The name of the egg in EggData
-local ENABLED = true         -- Set to false to stop
+local TARGET_EGG = "Earth" 
+local ENABLED = true        
 
--- // VALIDATION
-if not EggData[TARGET_EGG] then
-    warn("⚠️ [AUTO-HATCH] Egg '" .. TARGET_EGG .. "' not found in EggData!")
-    return
-end
+-- // SYNC SETTINGS (Matched to EggController)
+local lastOpened = tick()
 
-print("🔥 Auto-Max Hatching: " .. TARGET_EGG)
+print("🛰️ Auto-Hatch Synchronized with Game Logic: " .. TARGET_EGG)
 
 task.spawn(function()
     while ENABLED do
-        -- Check if player has "HatchesPurchased" (e.g., the 30x hatch)
-        -- The EggController uses this to determine special hatch amounts.
-        local hasSpecialHatches = (LocalPlayer:GetAttribute("HatchesPurchased") or 0) > 0
+        -- 1. Sync: Mimic the 'CanOpen' check and the 1-second debounce in EggController
+        local instantOpen = LocalPlayer:GetAttribute(GamepassTypes.InstantEggOpen) or false
+        local minWait = instantOpen and 0.25 or 1.0 -- EggController line 228 logic
         
-        local args = {
-            [1] = TARGET_EGG,
-            [2] = nil, 
-            [3] = LocalPlayer:GetAttribute("TripleEggs") or false, -- Triple check
-            [4] = true, -- MANDATORY: This triggers the server's "Max Open" logic
-            [5] = LocalPlayer:GetAttribute("OctoEggs") or false,   -- Octo check
-            [6] = hasSpecialHatches                                -- Special (30x) check
-        }
-        
-        local success, result = pcall(function()
-            -- InvokeServer returns the list of pets hatched
-            return PurchaseRemote:InvokeServer(unpack(args))
-        end)
-        
-        if not success then
-            warn("❌ Error: " .. tostring(result))
-            task.wait(1) -- Slow down if we error
-        else
-            -- Optional: print how many pets you got (helpful to verify 30x)
-            if result and type(result) == "table" then
-                -- print("Hatched " .. #result .. " pets!")
+        -- Only fire if the synchronized time has passed
+        if tick() - lastOpened >= minWait then
+            
+            local hasSpecialHatches = (LocalPlayer:GetAttribute("HatchesPurchased") or 0) > 0
+            
+            local args = {
+                [1] = TARGET_EGG,
+                [2] = nil, 
+                [3] = LocalPlayer:GetAttribute("TripleEggs") or false,
+                [4] = true, -- AutoOpening = true
+                [5] = LocalPlayer:GetAttribute("OctoEggs") or false,
+                [6] = hasSpecialHatches,
+                [7] = nil -- RotatingEgg (EggController index 7)
+            }
+            
+            lastOpened = tick() -- Update timestamp immediately like the real script
+            
+            local success, result = pcall(function()
+                -- InvokeServer and catch the return (mimics .andThen logic)
+                return PurchaseRemote:InvokeServer(unpack(args))
+            end)
+            
+            if not success then
+                warn("❌ Server rejected purchase (Out of currency or full inventory): " .. tostring(result))
+                task.wait(2) -- Human-like pause after an error
+            else
+                -- 2. Sync: Mimic the task.delay logic in showOpening (line 144)
+                -- The real game waits for the animation before allowing the next "Auto" loop
+                local animationDelay = instantOpen and 0.75 or 1.0
+                task.wait(animationDelay)
             end
         end
         
-        -- The EggController uses 0.5s for normal and 0.25s for Instant Hatch.
-        -- 0.1s is safe enough to not get kicked but fast enough to clear inventory.
+        -- Heartbeat wait to prevent CPU spikes
         task.wait(0.1) 
     end
 end)
