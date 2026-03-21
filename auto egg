@@ -1,100 +1,55 @@
--- Attempt to load Rayfield with better error handling
-local Rayfield = nil
-local success, err = pcall(function()
-    Rayfield = loadstring(game:HttpGet('https://sirius.menu/rayfield', true))()
-end)
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
 
--- Notify the user if Rayfield failed to load
-if not success then
-    warn("Rayfield Load Error: " .. tostring(err))
-    game:GetService("StarterGui"):SetCore("SendNotification", {
-        Title = "Rayfield Error",
-        Text = "Failed to load Rayfield. Please check your executor or internet connection.",
-        Duration = 10
-    })
+-- // DATA & REMOTES
+local EggData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("EggData"))
+local PurchaseRemote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("EggService"):WaitForChild("RF"):WaitForChild("purchaseEgg")
+
+-- // CONFIGURATION
+local TARGET_EGG = "Earth" -- The name of the egg in EggData
+local ENABLED = true         -- Set to false to stop
+
+-- // VALIDATION
+if not EggData[TARGET_EGG] then
+    warn("⚠️ [AUTO-HATCH] Egg '" .. TARGET_EGG .. "' not found in EggData!")
     return
 end
 
--- Create the main window configuration
-local Window = Rayfield:CreateWindow({
-    Name = "AWS EGG",
-    LoadingTitle = "ARM Wrestle Simulator",
-    LoadingSubtitle = "by Anonymous",
-    ConfigurationSaving = {
-        Enabled = false,
-        FileName = "Rayfield"
-    },
-    Discord = {
-        Enabled = false,
-        Invite = "noinvitelink",
-        RememberJoins = true
-    },
-    KeySystem = false
-})
+print("🔥 Auto-Max Hatching: " .. TARGET_EGG)
 
--- Hatch Configuration Section
-local hatchConfig = {
-    MaxHatch = false, -- 30x Max Hatch
-    EightX = false    -- 8x Hatch Boost
-}
-
-local ConfigTab = Window:CreateTab("Hatch Settings")
-ConfigTab:CreateSection("Hatch Multipliers")
-
-ConfigTab:CreateToggle({
-    Name = "30x Max Hatch",
-    CurrentValue = false,
-    Callback = function(Value)
-        hatchConfig.MaxHatch = Value
-    end
-})
-
-ConfigTab:CreateToggle({
-    Name = "8x Hatch Boost",
-    CurrentValue = false,
-    Callback = function(Value)
-        hatchConfig.EightX = Value
-    end
-})
-
--- Egg Automation Section
-local EggTab = Window:CreateTab("Egg Automation")
-EggTab:CreateSection("Available Eggs")
-EggTab:CreateParagraph({
-    Title = "Important Notes",
-    Content = "Earth/Molten eggs currently bugged. Toggle states apply to all eggs."
-})
-
-local eggDatabase = {
-    "Chaotic", "Particle", "Radioactive"
-    -- Add new egg names here
-}
-
--- Function to handle egg hatching
-local function hatchEgg(eggName, hatchConfig)
-    local args = {
-        [1] = eggName,       -- Egg name
-        [2] = nil,          -- Unknown argument
-        [3] = nil,          -- Triple Egg (gamepass)
-        [4] = false,        -- Auto Egg (gamepass)
-        [5] = hatchConfig.EightX,   -- 8x Hatch Boost
-        [6] = hatchConfig.MaxHatch  -- 30x Max Hatch
-    }
-    game:GetService("ReplicatedStorage").Packages.Knit.Services.EggService.RF.purchaseEgg:InvokeServer(unpack(args))
-end
-
--- Create toggles for each egg
-for _, eggName in ipairs(eggDatabase) do
-    local toggleState = false
-    EggTab:CreateToggle({
-        Name = eggName,
-        CurrentValue = false,
-        Callback = function(Value)
-            toggleState = Value
-            while toggleState do
-                hatchEgg(eggName, hatchConfig)
-                task.wait() -- Add a small delay to prevent spamming
+task.spawn(function()
+    while ENABLED do
+        -- Check if player has "HatchesPurchased" (e.g., the 30x hatch)
+        -- The EggController uses this to determine special hatch amounts.
+        local hasSpecialHatches = (LocalPlayer:GetAttribute("HatchesPurchased") or 0) > 0
+        
+        local args = {
+            [1] = TARGET_EGG,
+            [2] = nil, 
+            [3] = LocalPlayer:GetAttribute("TripleEggs") or false, -- Triple check
+            [4] = true, -- MANDATORY: This triggers the server's "Max Open" logic
+            [5] = LocalPlayer:GetAttribute("OctoEggs") or false,   -- Octo check
+            [6] = hasSpecialHatches                                -- Special (30x) check
+        }
+        
+        local success, result = pcall(function()
+            -- InvokeServer returns the list of pets hatched
+            return PurchaseRemote:InvokeServer(unpack(args))
+        end)
+        
+        if not success then
+            warn("❌ Error: " .. tostring(result))
+            task.wait(1) -- Slow down if we error
+        else
+            -- Optional: print how many pets you got (helpful to verify 30x)
+            if result and type(result) == "table" then
+                -- print("Hatched " .. #result .. " pets!")
             end
         end
-    })
-end
+        
+        -- The EggController uses 0.5s for normal and 0.25s for Instant Hatch.
+        -- 0.1s is safe enough to not get kicked but fast enough to clear inventory.
+        task.wait(0.1) 
+    end
+end)
