@@ -34,8 +34,8 @@ local FightSection = Tabs.AutoFight:AddSection("Auto Fight")
 local npcLocations = {}
 
 -- 1. Add Special Event Zones Manually
-if workspace.GameObjects.ArmWrestling:FindFirstChild("AtomicIsland") then
-    npcLocations["AtomicIsland"] = workspace.GameObjects.ArmWrestling.AtomicIsland.NPC
+if workspace.GameObjects.ArmWrestling:FindFirstChild("TheNightclub") then
+    npcLocations["TheNightclub"] = workspace.GameObjects.ArmWrestling.TheNightclub.NPC
 end
 if workspace.GameObjects.ArmWrestling:FindFirstChild("NightclubAlleyway") then
     npcLocations["NightclubAlleyway"] = workspace.GameObjects.ArmWrestling.NightclubAlleyway.NPC
