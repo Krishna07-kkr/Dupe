@@ -3,6 +3,11 @@ local Library = loadstring(game:HttpGet("https://github.com/ActualMasterOogway/F
 local SaveManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/Krishna07-kkr/remotesavemanager/refs/heads/main/savemanager"))()
 local InterfaceManager = loadstring(game:HttpGet("https://raw.githubusercontent.com/ActualMasterOogway/Fluent-Renewed/master/Addons/InterfaceManager.luau"))()
 
+-- Essential Services
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local KnitServices = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services")
 
 -- ===========================
 -- WINDOW SETUP
@@ -18,7 +23,6 @@ local Window = Library:Window{
     MinimizeKey = Enum.KeyCode.LeftShift
 }
 
--- Define Tabs (From Boss Script - The "Old Interface")
 local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
     AutoFight = Window:AddTab({ Title = "boss", Icon = "crown" }),
@@ -111,13 +115,12 @@ local AlwaysWin = Tabs.AutoFight:AddButton({
                 end
             end)
             local originalUpdateFight = armWrestle.UpdateFight
-            armwrestle.UpdateFight = function(self) end
+            armWrestle.UpdateFight = function(self) end
         end))
     end
 })
 
 -- Boss Services & Variables
-local KnitServices = game:GetService("ReplicatedStorage").Packages.Knit.Services
 local ArmwrestleServiceRF = KnitServices:WaitForChild("ArmWrestleService"):WaitForChild("RF")
 local ZoneService = KnitServices:WaitForChild("ZoneService"):WaitForChild("RE")
 
@@ -156,8 +159,7 @@ local function applyInstantWinHacks()
 end
 
 local function teleportToNpcZone(npcName)
-    local player = game.Players.LocalPlayer
-    local playerCurrentZone = player:GetAttribute("CurrentZone")
+    local playerCurrentZone = LocalPlayer:GetAttribute("CurrentZone")
     
     local npcZone = nil
     for zoneName, path in pairs(npcLocations) do
@@ -299,15 +301,66 @@ modelDropdown:OnChanged(function()
     end
 end)
 
+-- ===========================
+-- EGGS SECTION
+-- ===========================
+
+local EggSection = Tabs.Eggs:AddSection("Auto Hatching")
+
+local EggData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("EggData"))
+local PurchaseRemote = KnitServices:WaitForChild("EggService"):WaitForChild("RF"):WaitForChild("purchaseEgg")
+
+local eggList = {}
+for eggName, _ in pairs(EggData) do
+    table.insert(eggList, eggName)
+end
+table.sort(eggList)
+
+local SelectedEgg = EggData["Speaker"] and "Speaker" or (eggList[1] or "")
+
+local EggDropdown = Tabs.Eggs:AddDropdown("EggDropdown", {
+    Title = "Select Egg",
+    Values = eggList,
+    Multi = false,
+    Searchable = true,
+    Default = SelectedEgg,
+})
+
+EggDropdown:OnChanged(function(Value)
+    SelectedEgg = Value
+end)
+
+local AutoHatchToggle = Tabs.Eggs:AddToggle("AutoHatch", {
+    Title = "Auto Max Hatch",
+    Description = "Automatically hatches the selected egg.",
+    Default = false
+})
+
+task.spawn(function()
+    while true do
+        if AutoHatchToggle.Value and SelectedEgg ~= "" then
+            local hasSpecialHatches = (LocalPlayer:GetAttribute("HatchesPurchased") or 0) > 0
+            
+            local args = {
+                [1] = SelectedEgg,
+                [2] = nil, 
+                [3] = LocalPlayer:GetAttribute("TripleEggs") or false,
+                [4] = true, -- Max Open logic
+                [5] = LocalPlayer:GetAttribute("OctoEggs") or false,
+                [6] = hasSpecialHatches
+            }
+            
+            pcall(function()
+                PurchaseRemote:InvokeServer(unpack(args))
+            end)
+        end
+        task.wait(0.5) 
+    end
+end)
 
 -- ===========================
 -- SAVE MANAGER & INIT
 -- ===========================
-
-local function aggressiveCleanup()
-    pcall(function() local oldService = ArmwrestleServiceRF ArmwrestleServiceRF = KnitServices:WaitForChild("ArmWrestleService"):WaitForChild("RF") end)
-    collectgarbage("count") task.wait(0.1)
-end
 
 SaveManager:SetLibrary(Library)
 InterfaceManager:SetLibrary(Library)
