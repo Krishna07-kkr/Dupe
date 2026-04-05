@@ -1,103 +1,110 @@
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Player = game:GetService("Players").LocalPlayer
 
-
+-- Load Data Modules
 local UpgradeData = require(ReplicatedStorage.Data.CarrotUpgrades)
 local AscensionData = require(ReplicatedStorage.Data.CarrotAscensions)
 local Knit = require(ReplicatedStorage.Packages.Knit)
 
-
+-- Services & Controllers
 local UpgradeService = Knit.GetService("CarrotUpgradesService")
 local AscensionService = Knit.GetService("CarrotAscensionService")
 local CustomReplica = Knit.GetController("CustomReplicaController")
 
-
+-- Configuration
 local ZONE = "BunnyBurrow"
-local UPGRADES = {"MoreCarrots", "FasterCarrots", "MoreSpawns"}
+local MAIN_UPGRADES = {"MoreCarrots", "FasterCarrots", "MoreSpawns"}
+local CAPACITY_UPGRADE = "HigherCapacity"
+local MAX_CAPACITY_TIER = 15 -- Will stop at 15/50
 
 local function getReplicaData()
     local replica = CustomReplica:GetReplica()
-    if replica and replica.Data then
-        return replica.Data
-    end
-    return nil
+    return replica and replica.Data or nil
 end
 
-local function getNextUpgradeInfo()
+local function masterLoop()
     local data = getReplicaData()
-    if not data then return nil end
+    if not data then return end
     
     local currentCarrots = Player:GetAttribute("Carrots") or 0
-    local cheapestCost = math.huge
-    local targetUpgrade = nil
-    local allMaxed = true
+    
+    ---------------------------------------------------------
+    -- STEP 1: Check Capacity (Critical Priority)
+    ---------------------------------------------------------
+    local currentCapLevel = data.CarrotUpgrades[ZONE][CAPACITY_UPGRADE] or 0
+    if currentCapLevel < MAX_CAPACITY_TIER then
+        local capTable = UpgradeData.Upgrades[ZONE][CAPACITY_UPGRADE]
+        local nextCapLevel = currentCapLevel + 1
+        local capTierData = capTable.Upgrades[nextCapLevel] or capTable.Upgrades[tostring(nextCapLevel)]
+        
+        if capTierData and currentCarrots >= capTierData.Cost then
+            print("[Master] Capacity too low ("..currentCapLevel.."). Upgrading to "..nextCapLevel)
+            UpgradeService:BuyUpgrade(ZONE, CAPACITY_UPGRADE):await()
+            return -- Exit to let attributes refresh
+        end
+    end
 
-    for _, name in ipairs(UPGRADES) do
+    ---------------------------------------------------------
+    -- STEP 2: Calculate Next Upgrade vs Ascension
+    ---------------------------------------------------------
+    local cheapestUpgradeCost = math.huge
+    local targetUpgradeName = nil
+    local allMainMaxed = true
+
+    for _, name in ipairs(MAIN_UPGRADES) do
         local currentLevel = data.CarrotUpgrades[ZONE][name] or 0
         local upgradeTable = UpgradeData.Upgrades[ZONE][name]
         local nextLevel = currentLevel + 1
         local tierData = upgradeTable.Upgrades[nextLevel] or upgradeTable.Upgrades[tostring(nextLevel)]
         
         if tierData then
-            allMaxed = false
-            if tierData.Cost < cheapestCost then
-                cheapestCost = tierData.Cost
-                targetUpgrade = name
+            allMainMaxed = false
+            if tierData.Cost < cheapestUpgradeCost then
+                cheapestUpgradeCost = tierData.Cost
+                targetUpgradeName = name
             end
         end
     end
+
+    -- Get Ascension Info
+    local currentAscTier = tonumber(data.CarrotAscensions[ZONE]) or 0
+    local nextAscTier = currentAscTier + 1
+    local ascTierData = AscensionData.Ascensions[ZONE].Tiers[nextAscTier]
+    local ascCost = ascTierData and ascTierData.Cost or math.huge
+
+    ---------------------------------------------------------
+    -- STEP 3: Execution Logic
+    ---------------------------------------------------------
     
-    return cheapestCost, targetUpgrade, allMaxed
-end
-
-local function getNextAscensionCost()
-    local data = getReplicaData()
-    if not data then return math.huge end
-    
-    local currentTier = tonumber(data.CarrotAscensions[ZONE]) or 0
-    local nextTier = currentTier + 1
-    local tierData = AscensionData.Ascensions[ZONE].Tiers[nextTier]
-    
-    if tierData then
-        return tierData.Cost, nextTier
-    end
-    return math.huge, nil 
-end
-
-local function masterLoop()
-    local currentCarrots = Player:GetAttribute("Carrots") or 0
-    local upgradeCost, upgradeName, allUpgradesMaxed = getNextUpgradeInfo()
-    local ascensionCost, nextAscensionTier = getNextAscensionCost()
-
-
-    if allUpgradesMaxed then
-        if currentCarrots >= ascensionCost and nextAscensionTier then
-            print("[Master] All upgrades maxed. Buying Ascension Tier " .. nextAscensionTier)
+    -- Priority A: If everything else is maxed, buy Ascension
+    if allMainMaxed then
+        if currentCarrots >= ascCost and ascTierData then
+            print("[Master] All main upgrades maxed. Buying Ascension Tier " .. nextAscTier)
             AscensionService:BuyAscension(ZONE):await()
         end
         return
     end
 
- 
-    if ascensionCost <= upgradeCost and currentCarrots >= ascensionCost then
-        print("[Master] Ascension is cheaper than upgrades. Ascending to Tier " .. nextAscensionTier)
+    -- Priority B: Ascension if it's cheaper than the next main upgrade
+    if ascCost <= cheapestUpgradeCost and currentCarrots >= ascCost then
+        print("[Master] Ascension cheaper than upgrades. Ascending to Tier " .. nextAscTier)
         AscensionService:BuyAscension(ZONE):await()
         return
     end
 
-
-    if upgradeName and currentCarrots >= upgradeCost then
-        print("[Master] Buying priority upgrade: " .. upgradeName .. " for " .. upgradeCost)
-        UpgradeService:BuyUpgrade(ZONE, upgradeName):await()
+    -- Priority C: Main Upgrades (More Carrots, Faster, More Spawns)
+    if targetUpgradeName and currentCarrots >= cheapestUpgradeCost then
+        print("[Master] Buying priority upgrade: " .. targetUpgradeName .. " for " .. cheapestUpgradeCost)
+        UpgradeService:BuyUpgrade(ZONE, targetUpgradeName):await()
     end
 end
 
-
-print("Master Ascension & Upgrade System Active.")
+-- Execution
+print("Master System (Capacity-Aware) Active.")
 task.spawn(function()
     while true do
         local success, err = pcall(masterLoop)
         if not success then warn("Loop Error: " .. err) end
-        task.wait(1.5)
+        task.wait(1.5) 
     end
 end)
