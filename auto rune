@@ -1,0 +1,34 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+
+-- Accessing the Remote Function through the Knit structure
+local CarrotRunesService = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("CarrotRunesService")
+local RuneRemote = CarrotRunesService:WaitForChild("RF"):WaitForChild("PushRuneButton")
+
+-- Configuration
+_G.AutoRunesEnabled = true  -- Set to false to stop
+_G.ShowSuccessMessages = false -- Set to false to hide the "Rune Rolled" prints
+local Zone = "BunnyBurrow"
+
+task.spawn(function()
+    print("Auto-Rune Started. (Success Messages: " .. tostring(_G.ShowSuccessMessages) .. ")")
+    
+    while _G.AutoRunesEnabled do
+        -- InvokeServer returns the new rune data
+        local success, result = pcall(function()
+            return RuneRemote:InvokeServer(Zone)
+        end)
+        
+        if success then
+            if _G.ShowSuccessMessages then
+                -- result is usually a table containing the new 'stacks'
+                print("Successfully rolled rune in " .. Zone)
+            end
+        else
+            warn("Failed to fire remote: " .. tostring(result))
+        end
+        
+        task.wait(0.5)
+    end
+    
+    print("Auto-Rune Stopped.")
+end)
