@@ -5,7 +5,7 @@ local CarrotRunesService = ReplicatedStorage:WaitForChild("Packages"):WaitForChi
 local RuneRemote = CarrotRunesService:WaitForChild("RF"):WaitForChild("PushRuneButton")
 
 -- Configuration
-_G.AutoRunesEnabled = true  -- Set to false to stop
+_G.AutoRunesEnabled = false-- Set to false to stop
 _G.ShowSuccessMessages = false -- Set to false to hide the "Rune Rolled" prints
 local Zone = "BunnyBurrow"
 
