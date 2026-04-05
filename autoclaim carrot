@@ -1,0 +1,27 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Workspace = game:GetService("Workspace")
+
+local CarrotFolder = Workspace.GameObjects.Carrots
+local Remote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("CarrotSpawningService"):WaitForChild("RF"):WaitForChild("CarrotCollected")
+
+local function collect(carrot)
+    local zone = carrot:GetAttribute("CarrotZone")
+    local guid = carrot:GetAttribute("CarrotGuid")
+
+    if zone and guid then
+        local success = Remote:InvokeServer(zone, guid)
+        if carrot.Parent then
+            carrot:Destroy() 
+            print("Collected and Deleted: " .. guid)
+        end
+    end
+end
+
+for _, v in ipairs(CarrotFolder:GetChildren()) do
+    task.spawn(collect, v)
+end
+
+CarrotFolder.ChildAdded:Connect(function(v)
+    task.wait(0.2) 
+    collect(v)
+end)
