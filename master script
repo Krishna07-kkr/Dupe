@@ -1,8 +1,8 @@
 -- [[ CONFIGURATION ]]
 local SCRIPT_LIST = {
-    "https://raw.githubusercontent.com/Krishna07-kkr/Dupe/main/anti%20afk",
-    -- "https://link-to-another-script.lua",
-    -- "https://link-to-third-script.lua",
+    "https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/autoclaim%20carrot",
+    "https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/auto%20upg",
+	"https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/medal%20merchant"
 }
 
 local WAIT_BETWEEN = 5 -- Seconds to wait between each script launch
