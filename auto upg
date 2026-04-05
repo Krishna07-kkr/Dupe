@@ -1,0 +1,103 @@
+local ReplicatedStorage = game:GetService("ReplicatedStorage")
+local Player = game:GetService("Players").LocalPlayer
+
+
+local UpgradeData = require(ReplicatedStorage.Data.CarrotUpgrades)
+local AscensionData = require(ReplicatedStorage.Data.CarrotAscensions)
+local Knit = require(ReplicatedStorage.Packages.Knit)
+
+
+local UpgradeService = Knit.GetService("CarrotUpgradesService")
+local AscensionService = Knit.GetService("CarrotAscensionService")
+local CustomReplica = Knit.GetController("CustomReplicaController")
+
+
+local ZONE = "BunnyBurrow"
+local UPGRADES = {"MoreCarrots", "FasterCarrots", "MoreSpawns"}
+
+local function getReplicaData()
+    local replica = CustomReplica:GetReplica()
+    if replica and replica.Data then
+        return replica.Data
+    end
+    return nil
+end
+
+local function getNextUpgradeInfo()
+    local data = getReplicaData()
+    if not data then return nil end
+    
+    local currentCarrots = Player:GetAttribute("Carrots") or 0
+    local cheapestCost = math.huge
+    local targetUpgrade = nil
+    local allMaxed = true
+
+    for _, name in ipairs(UPGRADES) do
+        local currentLevel = data.CarrotUpgrades[ZONE][name] or 0
+        local upgradeTable = UpgradeData.Upgrades[ZONE][name]
+        local nextLevel = currentLevel + 1
+        local tierData = upgradeTable.Upgrades[nextLevel] or upgradeTable.Upgrades[tostring(nextLevel)]
+        
+        if tierData then
+            allMaxed = false
+            if tierData.Cost < cheapestCost then
+                cheapestCost = tierData.Cost
+                targetUpgrade = name
+            end
+        end
+    end
+    
+    return cheapestCost, targetUpgrade, allMaxed
+end
+
+local function getNextAscensionCost()
+    local data = getReplicaData()
+    if not data then return math.huge end
+    
+    local currentTier = tonumber(data.CarrotAscensions[ZONE]) or 0
+    local nextTier = currentTier + 1
+    local tierData = AscensionData.Ascensions[ZONE].Tiers[nextTier]
+    
+    if tierData then
+        return tierData.Cost, nextTier
+    end
+    return math.huge, nil 
+end
+
+local function masterLoop()
+    local currentCarrots = Player:GetAttribute("Carrots") or 0
+    local upgradeCost, upgradeName, allUpgradesMaxed = getNextUpgradeInfo()
+    local ascensionCost, nextAscensionTier = getNextAscensionCost()
+
+
+    if allUpgradesMaxed then
+        if currentCarrots >= ascensionCost and nextAscensionTier then
+            print("[Master] All upgrades maxed. Buying Ascension Tier " .. nextAscensionTier)
+            AscensionService:BuyAscension(ZONE):await()
+        end
+        return
+    end
+
+ 
+    if ascensionCost <= upgradeCost and currentCarrots >= ascensionCost then
+        print("[Master] Ascension is cheaper than upgrades. Ascending to Tier " .. nextAscensionTier)
+        AscensionService:BuyAscension(ZONE):await()
+        return
+    end
+
+
+    if upgradeName and currentCarrots >= upgradeCost then
+        print("[Master] Buying priority upgrade: " .. upgradeName .. " for " .. upgradeCost)
+        UpgradeService:BuyUpgrade(ZONE, upgradeName):await()
+    end
+end
+
+
+print("Master Ascension & Upgrade System Active.")
+task.spawn(function()
+    while true do
+        local success, err = pcall(masterLoop)
+        if not success then warn("Loop Error: " .. err) end
+        task.wait(1.5)
+    end
+end)
