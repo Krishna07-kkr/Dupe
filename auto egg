@@ -1,53 +1,68 @@
 -- Configuration
 local EGG_NAME = "Bunny" 
 local _running = true
+local SHOW_LOGS = true -- Default state for console messages
 
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("EggService"):WaitForChild("RF"):WaitForChild("purchaseEgg")
 
--- This function mimics the v39.openEgg logic for calculating max hatches
+-- UI Toggle Setup
+local ScreenGui = Instance.new("ScreenGui", LP.PlayerGui)
+ScreenGui.Name = "AutoHatchUI"
+
+local ToggleBtn = Instance.new("TextButton", ScreenGui)
+ToggleBtn.Size = UDim2.new(0, 150, 0, 50)
+ToggleBtn.Position = UDim2.new(0, 10, 0, 10)
+ToggleBtn.Text = "Logs: ON"
+ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
+
+ToggleBtn.MouseButton1Click:Connect(function()
+    SHOW_LOGS = not SHOW_LOGS
+    ToggleBtn.Text = SHOW_LOGS and "Logs: ON" or "Logs: OFF"
+    ToggleBtn.BackgroundColor3 = SHOW_LOGS and Color3.fromRGB(40, 150, 40) or Color3.fromRGB(150, 40, 40)
+end)
+
+-- Mimic v39 logic
 local function getMaxHatchArgs()
-    -- Check your attributes just like the controller does
     local hasTriple = LP:GetAttribute("TripleEggs") or false
     local hasOcto = LP:GetAttribute("OctoEggs") or false
     local extraHatches = LP:GetAttribute("HatchesPurchased") or 0
     
-    -- In your v39.openEgg:
-    -- p106 = Triple
-    -- p108 = Octo
-    -- p110 = HatchesPurchased (Special/Max logic)
-    
     return {
         [1] = EGG_NAME,
         [2] = nil,
-        [3] = hasTriple, -- Triple Eggs boolean
-        [4] = true,      -- IsAutoOpening (Set to true for continuous loop)
-        [5] = hasOcto,   -- Octo Eggs boolean
-        [6] = (extraHatches > 0), -- This triggers the "Special" max hatch logic
-        [7] = false      -- Rotating Egg
+        [3] = hasTriple, 
+        [4] = true,      
+        [5] = hasOcto,   
+        [6] = (extraHatches > 0), 
+        [7] = false      
     }
 end
 
 task.spawn(function()
-    print("🚀 Auto-Hatcher: MAX HATCH (30x) Mode Active")
+    print("🚀 Auto-Hatcher Active")
     
     while _running do
         local args = getMaxHatchArgs()
         
-        -- Fire the remote with the full argument set
         local success, result = pcall(function()
             return Remote:InvokeServer(unpack(args))
         end)
         
         if success and result then
-            -- Optional: print how many pets we got in this batch
-            -- print("Hatched batch of " .. #result .. " pets!")
+            -- Added the Toggle Check here
+            if SHOW_LOGS then
+                local petCount = type(result) == "table" and #result or 1
+                print("✅ Successfully hatched " .. petCount .. " pets!")
+            end
+        elseif not success and SHOW_LOGS then
+            warn("❌ Hatch failed: " .. tostring(result))
         end
 
-        -- SYNC: The controller rejects anything faster than 1 second
-        -- tick() - p105.LastOpened < 1
-        task.wait(0.5) 
+        -- Adjusted wait to match the 1s server throttle mention in your comments
+        task.wait(0.25) 
     end
 end)
