@@ -1,31 +1,14 @@
 -- Configuration
 local EGG_NAME = "Bunny" 
 local _running = true
-local SHOW_LOGS = false -- Default state for console messages
+local SHOW_LOGS = false -- Set to 'false' to disable console messages
 
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local Remote = ReplicatedStorage:WaitForChild("Packages"):WaitForChild("Knit"):WaitForChild("Services"):WaitForChild("EggService"):WaitForChild("RF"):WaitForChild("purchaseEgg")
 
--- UI Toggle Setup
-local ScreenGui = Instance.new("ScreenGui", LP.PlayerGui)
-ScreenGui.Name = "AutoHatchUI"
-
-local ToggleBtn = Instance.new("TextButton", ScreenGui)
-ToggleBtn.Size = UDim2.new(0, 150, 0, 50)
-ToggleBtn.Position = UDim2.new(0, 10, 0, 10)
-ToggleBtn.Text = "Logs: ON"
-ToggleBtn.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-ToggleBtn.TextColor3 = Color3.fromRGB(255, 255, 255)
-
-ToggleBtn.MouseButton1Click:Connect(function()
-    SHOW_LOGS = not SHOW_LOGS
-    ToggleBtn.Text = SHOW_LOGS and "Logs: ON" or "Logs: OFF"
-    ToggleBtn.BackgroundColor3 = SHOW_LOGS and Color3.fromRGB(40, 150, 40) or Color3.fromRGB(150, 40, 40)
-end)
-
--- Mimic v39 logic
+-- Function to calculate arguments based on your v39 Controller analysis
 local function getMaxHatchArgs()
     local hasTriple = LP:GetAttribute("TripleEggs") or false
     local hasOcto = LP:GetAttribute("OctoEggs") or false
@@ -35,7 +18,7 @@ local function getMaxHatchArgs()
         [1] = EGG_NAME,
         [2] = nil,
         [3] = hasTriple, 
-        [4] = true,      
+        [4] = true,      -- IsAutoOpening
         [5] = hasOcto,   
         [6] = (extraHatches > 0), 
         [7] = false      
@@ -43,26 +26,30 @@ local function getMaxHatchArgs()
 end
 
 task.spawn(function()
-    print("🚀 Auto-Hatcher Active")
+    if SHOW_LOGS then
+        print("🚀 Auto-Hatcher Active | Target Egg: " .. EGG_NAME)
+    end
     
     while _running do
         local args = getMaxHatchArgs()
         
         local success, result = pcall(function()
+            -- Invoking the Knit RemoteFunction
             return Remote:InvokeServer(unpack(args))
         end)
         
-        if success and result then
-            -- Added the Toggle Check here
-            if SHOW_LOGS then
+        if SHOW_LOGS then
+            if success and result then
+                -- result is usually a table of pets from the server
                 local petCount = type(result) == "table" and #result or 1
                 print("✅ Successfully hatched " .. petCount .. " pets!")
+            elseif not success then
+                warn("❌ Remote Error: " .. tostring(result))
             end
-        elseif not success and SHOW_LOGS then
-            warn("❌ Hatch failed: " .. tostring(result))
         end
 
-        -- Adjusted wait to match the 1s server throttle mention in your comments
-        task.wait(0.25) 
+        -- SYNC: Your v39 logic (Line 238) checks: tick() - LastOpened < 1
+        -- Waiting 1.01 seconds ensures the server doesn't throttle/ignore the request
+        task.wait(1.01) 
     end
 end)
