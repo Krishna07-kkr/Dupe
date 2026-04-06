@@ -48,6 +48,6 @@ task.spawn(function()
 
         -- SYNC: The controller rejects anything faster than 1 second
         -- tick() - p105.LastOpened < 1
-        task.wait(1.05) 
+        task.wait(0.5) 
     end
 end)
