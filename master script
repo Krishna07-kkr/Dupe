@@ -1,7 +1,7 @@
 -- [[ CONFIGURATION ]]
 local SCRIPT_LIST = {
     "https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/autoclaim%20carrot",
-    "https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/auto%20upg",
+    "https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/auto%20egg",
 	"https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/medal%20merchant"
     "https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/auto%20rune"
 }
