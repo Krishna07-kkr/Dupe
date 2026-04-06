@@ -26,7 +26,6 @@ local Window = Library:Window{
 local Tabs = {
     Settings = Window:AddTab({ Title = "Settings", Icon = "settings" }),
     AutoFight = Window:AddTab({ Title = "boss", Icon = "crown" }),
-    Eggs = Window:AddTab({ Title = "Eggs", Icon = "egg" }),
 }
 
 -- ===========================
@@ -301,62 +300,6 @@ modelDropdown:OnChanged(function()
     end
 end)
 
--- ===========================
--- EGGS SECTION
--- ===========================
-
-local EggSection = Tabs.Eggs:AddSection("Auto Hatching")
-
-local EggData = require(ReplicatedStorage:WaitForChild("Data"):WaitForChild("EggData"))
-local PurchaseRemote = KnitServices:WaitForChild("EggService"):WaitForChild("RF"):WaitForChild("purchaseEgg")
-
-local eggList = {}
-for eggName, _ in pairs(EggData) do
-    table.insert(eggList, eggName)
-end
-table.sort(eggList)
-
-local SelectedEgg = EggData["Speaker"] and "Speaker" or (eggList[1] or "")
-
-local EggDropdown = Tabs.Eggs:AddDropdown("EggDropdown", {
-    Title = "Select Egg",
-    Values = eggList,
-    Multi = false,
-    Searchable = true,
-    Default = SelectedEgg,
-})
-
-EggDropdown:OnChanged(function(Value)
-    SelectedEgg = Value
-end)
-
-local AutoHatchToggle = Tabs.Eggs:AddToggle("AutoHatch", {
-    Title = "Auto Max Hatch",
-    Description = "Automatically hatches the selected egg.",
-    Default = false
-})
-
-task.spawn(function()
-    while true do
-        if AutoHatchToggle.Value and SelectedEgg ~= "" then
-            local hasSpecialHatches = (LocalPlayer:GetAttribute("HatchesPurchased") or 0) > 0
-            
-            local args = {
-                [1] = SelectedEgg,
-                [2] = nil, 
-                [3] = LocalPlayer:GetAttribute("TripleEggs") or false,
-                [4] = true, -- Max Open logic
-                [5] = LocalPlayer:GetAttribute("OctoEggs") or false,
-                [6] = hasSpecialHatches
-            }
-            
-            pcall(function()
-                PurchaseRemote:InvokeServer(unpack(args))
-            end)
-        end
-        task.wait(0.5) 
-    end
-end)
 
 -- ===========================
 -- SAVE MANAGER & INIT
