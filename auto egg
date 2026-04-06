@@ -1,7 +1,7 @@
 -- Configuration
 local EGG_NAME = "Bunny" 
 local _running = true
-local SHOW_LOGS = true -- Default state for console messages
+local SHOW_LOGS = false -- Default state for console messages
 
 local Players = game:GetService("Players")
 local LP = Players.LocalPlayer
