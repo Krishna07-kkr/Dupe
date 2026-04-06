@@ -5,7 +5,7 @@ local CarrotRunesService = ReplicatedStorage:WaitForChild("Packages"):WaitForChi
 local RuneRemote = CarrotRunesService:WaitForChild("RF"):WaitForChild("PushRuneButton")
 
 -- Configuration
-_G.AutoRunesEnabled = false-- Set to false to stop
+_G.AutoRunesEnabled = true-- Set to false to stop
 _G.ShowSuccessMessages = false -- Set to false to hide the "Rune Rolled" prints
 local Zone = "BunnyBurrow"
 
@@ -27,7 +27,7 @@ task.spawn(function()
             warn("Failed to fire remote: " .. tostring(result))
         end
         
-        task.wait(0.5)
+        task.wait(0.25)
     end
     
     print("Auto-Rune Stopped.")
