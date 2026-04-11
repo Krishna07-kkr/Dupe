@@ -1,5 +1,5 @@
 -- Configuration
-local EGG_NAME = "Bunny" 
+local EGG_NAME = "EggBasket" 
 local _running = true
 local SHOW_LOGS = false -- Set to 'false' to disable console messages
 
