@@ -50,6 +50,6 @@ task.spawn(function()
 
         -- SYNC: Your v39 logic (Line 238) checks: tick() - LastOpened < 1
         -- Waiting 1.01 seconds ensures the server doesn't throttle/ignore the request
-        task.wait(1.5) 
+        task.wait(2) 
     end
 end)
